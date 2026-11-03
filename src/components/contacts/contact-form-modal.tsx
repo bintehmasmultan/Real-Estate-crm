@@ -17,31 +17,10 @@ import {
 } from "@/lib/constants";
 import { createContact, updateContact } from "@/app/actions/contacts";
 import { asStringArray } from "@/lib/utils";
+import type { Contact as ContactRecord } from "@/lib/types";
 
 type Agent = { id: string; name: string };
-type Contact = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string | null;
-  phone: string | null;
-  whatsapp: string | null;
-  address: string | null;
-  city: string | null;
-  type: string;
-  status: string;
-  source: string | null;
-  tags: string[] | string;
-  notes: string | null;
-  budgetMin: number | null;
-  budgetMax: number | null;
-  preferredLocation: string | null;
-  preferredType: string | null;
-  beds: number | null;
-  baths: number | null;
-  preferenceNotes: string | null;
-  assignedAgentId: string | null;
-};
+type Contact = ContactRecord;
 
 export function ContactFormModal({
   agents,

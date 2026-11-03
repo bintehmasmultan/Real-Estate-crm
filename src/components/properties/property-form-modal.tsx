@@ -11,26 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { PROPERTY_TYPES, PROPERTY_STATUSES, labelize } from "@/lib/constants";
 import { createProperty, updateProperty } from "@/app/actions/properties";
 import { asStringArray } from "@/lib/utils";
+import type { Property as PropertyRecord } from "@/lib/types";
 
 type Option = { id: string; name: string };
-type Property = {
-  id: string;
-  title: string;
-  address: string;
-  city: string;
-  type: string;
-  status: string;
-  price: number;
-  area: number | null;
-  areaUnit: string;
-  beds: number | null;
-  baths: number | null;
-  description: string | null;
-  photos: string[] | string;
-  documents: string[] | string;
-  listingAgentId: string | null;
-  ownerContactId: string | null;
-};
+type Property = PropertyRecord;
 
 export function PropertyFormModal({
   agents,

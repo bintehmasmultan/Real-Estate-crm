@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSessionCookie } from "@/lib/firebase/session";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 
 export async function POST(req: Request) {
   try {
@@ -9,8 +9,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing idToken" }, { status: 400 });
     }
 
-    const decoded = await adminAuth.verifyIdToken(idToken);
-    const userRef = adminDb.collection("users").doc(decoded.uid);
+    const decoded = await getAdminAuth().verifyIdToken(idToken);
+    const userRef = getAdminDb().collection("users").doc(decoded.uid);
     const existing = await userRef.get();
 
     if (!existing.exists) {

@@ -2,8 +2,9 @@ import {
   FieldValue,
   type Query,
   type DocumentData,
+  type QueryDocumentSnapshot,
 } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
 import { randomUUID } from "crypto";
 
 export function nowIso() {
@@ -15,7 +16,7 @@ export function newId() {
 }
 
 export function col(name: string) {
-  return adminDb.collection(name);
+  return getAdminDb().collection(name);
 }
 
 export async function getDoc<T extends { id: string }>(
@@ -71,7 +72,9 @@ export async function listDocs<T extends { id: string }>(
   let q: Query<DocumentData> = col(collectionName);
   if (build) q = build(q);
   const snap = await q.get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T);
+  return snap.docs.map(
+    (d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() }) as T
+  );
 }
 
 export async function countDocs(

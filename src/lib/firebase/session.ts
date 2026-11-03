@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import type { Role } from "@/lib/constants";
 import type { AppUser } from "@/lib/types";
 
@@ -15,7 +15,7 @@ export type SessionUser = {
 
 export async function createSessionCookie(idToken: string) {
   const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-  const sessionCookie = await adminAuth.createSessionCookie(idToken, {
+  const sessionCookie = await getAdminAuth().createSessionCookie(idToken, {
     expiresIn,
   });
   const jar = await cookies();
@@ -39,8 +39,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!session) return null;
 
   try {
-    const decoded = await adminAuth.verifySessionCookie(session, true);
-    const snap = await adminDb.collection("users").doc(decoded.uid).get();
+    const decoded = await getAdminAuth().verifySessionCookie(session, true);
+    const snap = await getAdminDb().collection("users").doc(decoded.uid).get();
     if (!snap.exists) {
       return {
         id: decoded.uid,

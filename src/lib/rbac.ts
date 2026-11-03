@@ -1,4 +1,5 @@
-import { adminDb } from "@/lib/firebase/admin";
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { getAdminDb } from "@/lib/firebase/admin";
 import type { Role } from "@/lib/constants";
 
 export type SessionUser = {
@@ -13,12 +14,12 @@ export async function getTeamAgentIds(user: SessionUser) {
 
   if (!user.teamId) return [user.id];
 
-  const snap = await adminDb
+  const snap = await getAdminDb()
     .collection("users")
     .where("teamId", "==", user.teamId)
     .get();
 
-  return snap.docs.map((d) => d.id);
+  return snap.docs.map((d: QueryDocumentSnapshot) => d.id);
 }
 
 export function inAgentScope(

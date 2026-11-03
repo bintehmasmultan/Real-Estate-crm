@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import type { Role } from "@/lib/constants";
 
 export type SessionUser = {
@@ -8,38 +8,24 @@ export type SessionUser = {
 };
 
 export async function getTeamAgentIds(user: SessionUser) {
-  if (user.role === "ADMIN") return null; // null = no filter (all)
+  if (user.role === "ADMIN") return null;
   if (user.role === "AGENT") return [user.id];
 
   if (!user.teamId) return [user.id];
 
-  const members = await prisma.user.findMany({
-    where: { teamId: user.teamId },
-    select: { id: true },
-  });
-  return members.map((m) => m.id);
+  const snap = await adminDb
+    .collection("users")
+    .where("teamId", "==", user.teamId)
+    .get();
+
+  return snap.docs.map((d) => d.id);
 }
 
-export function agentScopeWhere(agentIds: string[] | null, field = "assignedAgentId") {
-  if (!agentIds) return {};
-  return { [field]: { in: agentIds } };
-}
-
-export function dealAgentScopeWhere(agentIds: string[] | null) {
-  if (!agentIds) return {};
-  return { agentId: { in: agentIds } };
-}
-
-export function propertyAgentScopeWhere(agentIds: string[] | null) {
-  if (!agentIds) return {};
-  return { listingAgentId: { in: agentIds } };
-}
-
-export function taskAssigneeScopeWhere(agentIds: string[] | null) {
-  if (!agentIds) return {};
-  return { assigneeId: { in: agentIds } };
-}
-
-export function canManageUsers(role: Role) {
-  return role === "ADMIN";
+export function inAgentScope(
+  agentIds: string[] | null,
+  fieldValue?: string | null
+) {
+  if (!agentIds) return true;
+  if (!fieldValue) return false;
+  return agentIds.includes(fieldValue);
 }

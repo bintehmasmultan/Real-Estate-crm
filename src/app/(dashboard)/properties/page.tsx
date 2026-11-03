@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getTeamAgentIds, propertyAgentScopeWhere } from "@/lib/rbac";
+import { getSessionUser } from "@/lib/firebase/session";
+import { getUsers, listContacts, listProperties } from "@/lib/db/crm";
+import { getTeamAgentIds } from "@/lib/rbac";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
@@ -11,51 +11,55 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PropertyFormModal } from "@/components/properties/property-form-modal";
 
+function propertyMatches(
+  p: {
+    title: string;
+    address: string;
+    city: string;
+    type: string;
+    status: string;
+  },
+  q: string,
+  status: string,
+  type: string
+) {
+  if (status && p.status !== status) return false;
+  if (type && p.type !== type) return false;
+  if (!q) return true;
+  const hay = [p.title, p.address, p.city].join(" ").toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
 export default async function PropertiesPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; status?: string; type?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) return null;
+  const session = await getSessionUser();
+  if (!session) return null;
   const params = await searchParams;
   const q = params.q?.trim() || "";
   const status = params.status || "";
   const type = params.type || "";
 
   const agentIds = await getTeamAgentIds({
-    id: session.user.id,
-    role: session.user.role,
-    teamId: session.user.teamId,
+    id: session.id,
+    role: session.role,
+    teamId: session.teamId,
   });
 
-  const where = {
-    ...propertyAgentScopeWhere(agentIds),
-    ...(status ? { status } : {}),
-    ...(type ? { type } : {}),
-    ...(q
-      ? {
-          OR: [
-            { title: { contains: q } },
-            { address: { contains: q } },
-            { city: { contains: q } },
-          ],
-        }
-      : {}),
-  };
-
-  const [properties, agents, contacts] = await Promise.all([
-    prisma.property.findMany({
-      where,
-      include: { listingAgent: true },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.contact.findMany({
-      select: { id: true, firstName: true, lastName: true },
-      orderBy: { firstName: "asc" },
-    }),
+  const [allProperties, users, contacts] = await Promise.all([
+    listProperties(agentIds),
+    getUsers(),
+    listContacts(agentIds),
   ]);
+
+  const properties = allProperties.filter((p) =>
+    propertyMatches(p, q, status, type)
+  );
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
+  const agents = users.map((u) => ({ id: u.id, name: u.name }));
 
   return (
     <div>
@@ -117,7 +121,9 @@ export default async function PropertiesPage({
                 {p.area ? ` · ${p.area} ${p.areaUnit}` : ""}
                 {p.beds ? ` · ${p.beds} beds` : ""}
                 {" · "}
-                {p.listingAgent?.name || "Unassigned"}
+                {p.listingAgentId
+                  ? userMap.get(p.listingAgentId)?.name || "Unassigned"
+                  : "Unassigned"}
               </p>
             </Link>
           ))}

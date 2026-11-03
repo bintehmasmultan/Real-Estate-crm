@@ -37,16 +37,16 @@ export function fullName(firstName: string, lastName: string) {
   return `${firstName} ${lastName}`.trim();
 }
 
-export function parseJsonArray(value: string | null | undefined): string[] {
+/** Normalize Firestore string[] or legacy JSON-encoded arrays. */
+export function asStringArray(
+  value: string[] | string | null | undefined
+): string[] {
   if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
   } catch {
     return [];
   }
-}
-
-export function toJsonArray(values: string[]) {
-  return JSON.stringify(values.filter(Boolean));
 }

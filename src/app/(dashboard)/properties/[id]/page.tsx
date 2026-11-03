@@ -1,8 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { formatCurrency, fullName, parseJsonArray } from "@/lib/utils";
+import { getSessionUser } from "@/lib/firebase/session";
+import {
+  getContact,
+  getProperty,
+  getStage,
+  getUsers,
+  listContactProperties,
+  listContacts,
+  listDeals,
+} from "@/lib/db/crm";
+import { getTeamAgentIds } from "@/lib/rbac";
+import { formatCurrency, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -15,29 +24,52 @@ export default async function PropertyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await auth();
+  const session = await getSessionUser();
+  if (!session) return null;
 
-  const property = await prisma.property.findUnique({
-    where: { id },
-    include: {
-      listingAgent: true,
-      ownerContact: true,
-      deals: { include: { stage: true, contact: true } },
-      interestedContacts: { include: { contact: true } },
-    },
-  });
+  const property = await getProperty(id);
   if (!property) notFound();
 
-  const [agents, contacts] = await Promise.all([
-    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.contact.findMany({
-      select: { id: true, firstName: true, lastName: true },
-      orderBy: { firstName: "asc" },
-    }),
+  const agentIds = await getTeamAgentIds({
+    id: session.id,
+    role: session.role,
+    teamId: session.teamId,
+  });
+
+  const [users, contacts, deals, cpRows] = await Promise.all([
+    getUsers(),
+    listContacts(agentIds),
+    listDeals(agentIds),
+    listContactProperties(undefined, id),
   ]);
 
-  const photos = parseJsonArray(property.photos);
-  const documents = parseJsonArray(property.documents);
+  const userMap = new Map(users.map((u) => [u.id, u]));
+  const agents = users.map((u) => ({ id: u.id, name: u.name }));
+  const listingAgent = property.listingAgentId
+    ? userMap.get(property.listingAgentId)
+    : null;
+  const ownerContact = property.ownerContactId
+    ? await getContact(property.ownerContactId)
+    : null;
+
+  const propertyDeals = deals.filter((d) => d.propertyId === id);
+  const dealsWithRelations = await Promise.all(
+    propertyDeals.map(async (d) => ({
+      ...d,
+      stage: d.stageId ? await getStage(d.stageId) : null,
+      contact: d.contactId ? await getContact(d.contactId) : null,
+    }))
+  );
+
+  const interestedContacts = await Promise.all(
+    cpRows.map(async (row) => ({
+      ...row,
+      contact: await getContact(row.contactId),
+    }))
+  );
+
+  const photos = property.photos ?? [];
+  const documents = property.documents ?? [];
 
   return (
     <div className="space-y-6">
@@ -81,11 +113,11 @@ export default async function PropertyDetailPage({
           <CardContent className="space-y-2 text-sm">
             <p>Area: {property.area ? `${property.area} ${property.areaUnit}` : "—"}</p>
             <p>Beds / Baths: {property.beds ?? "—"} / {property.baths ?? "—"}</p>
-            <p>Agent: {property.listingAgent?.name || "—"}</p>
+            <p>Agent: {listingAgent?.name || "—"}</p>
             <p>
               Owner:{" "}
-              {property.ownerContact
-                ? fullName(property.ownerContact.firstName, property.ownerContact.lastName)
+              {ownerContact
+                ? fullName(ownerContact.firstName, ownerContact.lastName)
                 : "—"}
             </p>
             <p className="text-slate-500">{property.description}</p>
@@ -95,13 +127,15 @@ export default async function PropertyDetailPage({
         <Card>
           <CardHeader><CardTitle>Interested contacts</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {property.interestedContacts.map((row) => (
+            {interestedContacts.map((row) => (
               <Link
                 key={row.id}
                 href={`/contacts/${row.contactId}`}
                 className="block rounded-lg border p-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
               >
-                {fullName(row.contact.firstName, row.contact.lastName)}
+                {row.contact
+                  ? fullName(row.contact.firstName, row.contact.lastName)
+                  : "Contact"}
                 <span className="ml-2 text-slate-500">{row.interest}</span>
               </Link>
             ))}
@@ -111,10 +145,10 @@ export default async function PropertyDetailPage({
         <Card>
           <CardHeader><CardTitle>Related deals & docs</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            {property.deals.map((d) => (
+            {dealsWithRelations.map((d) => (
               <div key={d.id} className="rounded-lg border p-3">
                 <p className="font-medium">{d.title}</p>
-                <p className="text-slate-500">{d.stage.name} · {formatCurrency(d.value)}</p>
+                <p className="text-slate-500">{d.stage?.name ?? "—"} · {formatCurrency(d.value)}</p>
               </div>
             ))}
             {documents.map((doc) => (

@@ -1,16 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Building } from "lucide-react";
-import { auth } from "@/lib/auth";
-import { signupAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { getSessionUser } from "@/lib/firebase/session";
+import { SignupForm } from "@/components/auth/signup-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function SignupPage() {
-  const session = await auth();
-  if (session?.user) redirect("/dashboard");
+  const session = await getSessionUser();
+  if (session) redirect("/dashboard");
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4">
@@ -22,38 +19,11 @@ export default async function SignupPage() {
           </div>
           <CardTitle className="text-2xl text-white">Create agent account</CardTitle>
           <CardDescription className="text-slate-400">
-            New signups start with the Agent role
+            New signups start with the Agent role (Firebase Auth)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={signupAction} className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-slate-200">Full name</Label>
-              <Input name="name" required className="border-slate-700 bg-slate-950 text-white" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-slate-200">Email</Label>
-              <Input
-                name="email"
-                type="email"
-                required
-                className="border-slate-700 bg-slate-950 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-slate-200">Password</Label>
-              <Input
-                name="password"
-                type="password"
-                required
-                minLength={6}
-                className="border-slate-700 bg-slate-950 text-white"
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              Create account
-            </Button>
-          </form>
+          <SignupForm />
           <p className="mt-4 text-center text-sm text-slate-400">
             Already registered?{" "}
             <Link href="/login" className="text-emerald-400 hover:underline">

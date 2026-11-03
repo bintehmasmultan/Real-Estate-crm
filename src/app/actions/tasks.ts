@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import {
+  createActivity as createActivityDoc,
+  createTask as createTaskDoc,
+  getTask,
+  updateTask as updateTaskDoc,
+} from "@/lib/db/crm";
+import { requireSessionUser } from "@/lib/firebase/session";
 
 const taskSchema = z.object({
   title: z.string().min(1),
@@ -34,77 +39,71 @@ function parseTask(formData: FormData) {
 }
 
 export async function createTask(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  const session = await requireSessionUser();
   const data = parseTask(formData);
-  await prisma.task.create({
-    data: {
-      ...data,
-      dueAt: data.dueAt ? new Date(data.dueAt) : null,
-      assigneeId: data.assigneeId || session.user.id,
-      createdById: session.user.id,
-      contactId: data.contactId || null,
-      propertyId: data.propertyId || null,
-      dealId: data.dealId || null,
-      leadId: data.leadId || null,
-    },
+
+  await createTaskDoc({
+    ...data,
+    dueAt: data.dueAt || null,
+    assigneeId: data.assigneeId || session.id,
+    createdById: session.id,
+    contactId: data.contactId || null,
+    propertyId: data.propertyId || null,
+    dealId: data.dealId || null,
+    leadId: data.leadId || null,
   });
+
   revalidatePath("/tasks");
   revalidatePath("/calendar");
   revalidatePath("/dashboard");
 }
 
 export async function updateTask(id: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  await requireSessionUser();
   const data = parseTask(formData);
-  await prisma.task.update({
-    where: { id },
-    data: {
-      ...data,
-      dueAt: data.dueAt ? new Date(data.dueAt) : null,
-      assigneeId: data.assigneeId || null,
-      contactId: data.contactId || null,
-      propertyId: data.propertyId || null,
-      dealId: data.dealId || null,
-      leadId: data.leadId || null,
-    },
+
+  await updateTaskDoc(id, {
+    ...data,
+    dueAt: data.dueAt || null,
+    assigneeId: data.assigneeId || null,
+    contactId: data.contactId || null,
+    propertyId: data.propertyId || null,
+    dealId: data.dealId || null,
+    leadId: data.leadId || null,
   });
+
   revalidatePath("/tasks");
   revalidatePath("/calendar");
 }
 
 export async function toggleTaskDone(id: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
-  const task = await prisma.task.findUnique({ where: { id } });
+  await requireSessionUser();
+  const task = await getTask(id);
   if (!task) return;
-  await prisma.task.update({
-    where: { id },
-    data: { status: task.status === "DONE" ? "TODO" : "DONE" },
+
+  await updateTaskDoc(id, {
+    status: task.status === "DONE" ? "TODO" : "DONE",
   });
+
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
 }
 
 export async function createActivity(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  const session = await requireSessionUser();
 
-  await prisma.activity.create({
-    data: {
-      type: String(formData.get("type") || "NOTE"),
-      subject: String(formData.get("subject") || "") || null,
-      body: String(formData.get("body") || "") || null,
-      createdById: session.user.id,
-      contactId: (formData.get("contactId") as string) || null,
-      propertyId: (formData.get("propertyId") as string) || null,
-      dealId: (formData.get("dealId") as string) || null,
-      leadId: (formData.get("leadId") as string) || null,
-      scheduledAt: formData.get("scheduledAt")
-        ? new Date(String(formData.get("scheduledAt")))
-        : null,
-    },
+  await createActivityDoc({
+    type: String(formData.get("type") || "NOTE"),
+    subject: String(formData.get("subject") || "") || null,
+    body: String(formData.get("body") || "") || null,
+    createdById: session.id,
+    contactId: (formData.get("contactId") as string) || null,
+    propertyId: (formData.get("propertyId") as string) || null,
+    dealId: (formData.get("dealId") as string) || null,
+    leadId: (formData.get("leadId") as string) || null,
+    scheduledAt: formData.get("scheduledAt")
+      ? String(formData.get("scheduledAt"))
+      : null,
   });
 
   const contactId = formData.get("contactId");

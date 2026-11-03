@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { toJsonArray } from "@/lib/utils";
+import {
+  createProperty as createPropertyDoc,
+  removeProperty,
+  updateProperty as updatePropertyDoc,
+} from "@/lib/db/crm";
+import { requireSessionUser } from "@/lib/firebase/session";
 
 const propertySchema = z.object({
   title: z.string().min(1),
@@ -18,25 +21,21 @@ const propertySchema = z.object({
   beds: z.coerce.number().optional().nullable(),
   baths: z.coerce.number().optional().nullable(),
   description: z.string().optional(),
-  photos: z.string().optional(),
-  documents: z.string().optional(),
+  photos: z.array(z.string()).optional(),
+  documents: z.array(z.string()).optional(),
   listingAgentId: z.string().optional().nullable(),
   ownerContactId: z.string().optional().nullable(),
 });
 
 function formToProperty(formData: FormData) {
-  const photos = toJsonArray(
-    String(formData.get("photos") || "")
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean)
-  );
-  const documents = toJsonArray(
-    String(formData.get("documents") || "")
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean)
-  );
+  const photos = String(formData.get("photos") || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const documents = String(formData.get("documents") || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   return propertySchema.parse({
     title: formData.get("title"),
@@ -58,43 +57,39 @@ function formToProperty(formData: FormData) {
 }
 
 export async function createProperty(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  const session = await requireSessionUser();
   const data = formToProperty(formData);
-  await prisma.property.create({
-    data: {
-      ...data,
-      photos: data.photos || "[]",
-      documents: data.documents || "[]",
-      listingAgentId: data.listingAgentId || session.user.id,
-      ownerContactId: data.ownerContactId || null,
-    },
+
+  await createPropertyDoc({
+    ...data,
+    photos: data.photos ?? [],
+    documents: data.documents ?? [],
+    listingAgentId: data.listingAgentId || session.id,
+    ownerContactId: data.ownerContactId || null,
   });
+
   revalidatePath("/properties");
   revalidatePath("/dashboard");
 }
 
 export async function updateProperty(id: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  await requireSessionUser();
   const data = formToProperty(formData);
-  await prisma.property.update({
-    where: { id },
-    data: {
-      ...data,
-      photos: data.photos || "[]",
-      documents: data.documents || "[]",
-      listingAgentId: data.listingAgentId || null,
-      ownerContactId: data.ownerContactId || null,
-    },
+
+  await updatePropertyDoc(id, {
+    ...data,
+    photos: data.photos ?? [],
+    documents: data.documents ?? [],
+    listingAgentId: data.listingAgentId || null,
+    ownerContactId: data.ownerContactId || null,
   });
+
   revalidatePath("/properties");
   revalidatePath(`/properties/${id}`);
 }
 
 export async function deleteProperty(id: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
-  await prisma.property.delete({ where: { id } });
+  await requireSessionUser();
+  await removeProperty(id);
   revalidatePath("/properties");
 }

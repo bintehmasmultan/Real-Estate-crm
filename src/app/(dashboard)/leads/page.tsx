@@ -1,6 +1,6 @@
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getTeamAgentIds, agentScopeWhere } from "@/lib/rbac";
+import { getSessionUser } from "@/lib/firebase/session";
+import { getUsers, listLeads } from "@/lib/db/crm";
+import { getTeamAgentIds } from "@/lib/rbac";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
@@ -11,52 +11,57 @@ import { Select } from "@/components/ui/select";
 import { LeadActions } from "@/components/leads/lead-actions";
 import { LeadFormModal } from "@/components/leads/lead-form-modal";
 
+function leadMatches(
+  l: {
+    firstName: string;
+    lastName: string;
+    email?: string | null;
+    phone?: string | null;
+    status: string;
+    source: string;
+  },
+  q: string,
+  status: string,
+  source: string
+) {
+  if (status && l.status !== status) return false;
+  if (source && l.source !== source) return false;
+  if (!q) return true;
+  const hay = [l.firstName, l.lastName, l.email, l.phone]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
 export default async function LeadsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; status?: string; source?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) return null;
+  const session = await getSessionUser();
+  if (!session) return null;
   const params = await searchParams;
   const q = params.q?.trim() || "";
   const status = params.status || "";
   const source = params.source || "";
 
   const agentIds = await getTeamAgentIds({
-    id: session.user.id,
-    role: session.user.role,
-    teamId: session.user.teamId,
+    id: session.id,
+    role: session.role,
+    teamId: session.teamId,
   });
 
-  const where = {
-    ...agentScopeWhere(agentIds),
-    ...(status ? { status } : {}),
-    ...(source ? { source } : {}),
-    ...(q
-      ? {
-          OR: [
-            { firstName: { contains: q } },
-            { lastName: { contains: q } },
-            { email: { contains: q } },
-            { phone: { contains: q } },
-          ],
-        }
-      : {}),
-  };
-
-  const [leads, agents] = await Promise.all([
-    prisma.lead.findMany({
-      where,
-      include: { assignedAgent: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.user.findMany({
-      where: { role: { in: ["AGENT", "MANAGER", "ADMIN"] } },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+  const [allLeads, users] = await Promise.all([
+    listLeads(agentIds),
+    getUsers(),
   ]);
+
+  const leads = allLeads.filter((l) => leadMatches(l, q, status, source));
+  const userMap = new Map(users.map((u) => [u.id, u]));
+  const agents = users
+    .filter((u) => ["AGENT", "MANAGER", "ADMIN"].includes(u.role))
+    .map((u) => ({ id: u.id, name: u.name }));
 
   return (
     <div>
@@ -112,7 +117,11 @@ export default async function LeadsPage({
                   <td className="px-4 py-3"><Badge>{labelize(lead.status)}</Badge></td>
                   <td className="px-4 py-3">{lead.score}</td>
                   <td className="px-4 py-3">{lead.budget ? formatCurrency(lead.budget) : "—"}</td>
-                  <td className="px-4 py-3">{lead.assignedAgent?.name || "—"}</td>
+                  <td className="px-4 py-3">
+                    {lead.assignedAgentId
+                      ? userMap.get(lead.assignedAgentId)?.name || "—"
+                      : "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <LeadActions leadId={lead.id} converted={lead.status === "CONVERTED"} />
                   </td>

@@ -1,45 +1,48 @@
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getTeamAgentIds, dealAgentScopeWhere, agentScopeWhere } from "@/lib/rbac";
+import { getSessionUser } from "@/lib/firebase/session";
+import { getUsers, listDeals, listLeads, listStages } from "@/lib/db/crm";
+import { getTeamAgentIds } from "@/lib/rbac";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportsCharts } from "@/components/reports/reports-charts";
 
 export default async function ReportsPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const session = await getSessionUser();
+  if (!session) return null;
 
   const agentIds = await getTeamAgentIds({
-    id: session.user.id,
-    role: session.user.role,
-    teamId: session.user.teamId,
+    id: session.id,
+    role: session.role,
+    teamId: session.teamId,
   });
 
-  const [leadsBySource, stages, deals, agents] = await Promise.all([
-    prisma.lead.groupBy({
-      by: ["source"],
-      where: agentScopeWhere(agentIds),
-      _count: { _all: true },
-    }),
-    prisma.pipelineStage.findMany({
-      where: { pipeline: "SALES" },
-      orderBy: { order: "asc" },
-    }),
-    prisma.deal.findMany({
-      where: dealAgentScopeWhere(agentIds),
-      select: { stageId: true, agentId: true, value: true, closedAt: true },
-    }),
-    prisma.user.findMany({
-      where: agentIds ? { id: { in: agentIds } } : { role: { in: ["AGENT", "MANAGER"] } },
-      select: { id: true, name: true },
-    }),
+  const [leads, stages, deals, users] = await Promise.all([
+    listLeads(agentIds),
+    listStages("SALES"),
+    listDeals(agentIds),
+    getUsers(),
   ]);
+
+  const leadsBySourceMap = new Map<string, number>();
+  for (const lead of leads) {
+    leadsBySourceMap.set(
+      lead.source,
+      (leadsBySourceMap.get(lead.source) ?? 0) + 1
+    );
+  }
+  const leadsBySource = [...leadsBySourceMap.entries()].map(([source, count]) => ({
+    source,
+    _count: { _all: count },
+  }));
 
   const dealsByStage = stages.map((s) => ({
     name: s.name,
     count: deals.filter((d) => d.stageId === s.id).length,
   }));
+
+  const agents = users.filter((u) =>
+    agentIds ? agentIds.includes(u.id) : ["AGENT", "MANAGER"].includes(u.role)
+  );
 
   const agentPerf = agents.map((a) => {
     const agentDeals = deals.filter((d) => d.agentId === a.id);

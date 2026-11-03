@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { toJsonArray } from "@/lib/utils";
+import {
+  createContact as createContactDoc,
+  removeContact,
+  updateContact as updateContactDoc,
+} from "@/lib/db/crm";
+import { requireSessionUser } from "@/lib/firebase/session";
 
 const contactSchema = z.object({
   firstName: z.string().min(1),
@@ -17,7 +20,7 @@ const contactSchema = z.object({
   type: z.string(),
   status: z.string(),
   source: z.string().optional(),
-  tags: z.string().optional(),
+  tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
   budgetMin: z.coerce.number().optional().nullable(),
   budgetMax: z.coerce.number().optional().nullable(),
@@ -31,12 +34,10 @@ const contactSchema = z.object({
 
 function formToContact(formData: FormData) {
   const tagsRaw = String(formData.get("tags") || "");
-  const tags = toJsonArray(
-    tagsRaw
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean)
-  );
+  const tags = tagsRaw
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
 
   return contactSchema.parse({
     firstName: formData.get("firstName"),
@@ -63,17 +64,14 @@ function formToContact(formData: FormData) {
 }
 
 export async function createContact(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
-
+  const session = await requireSessionUser();
   const data = formToContact(formData);
-  await prisma.contact.create({
-    data: {
-      ...data,
-      email: data.email || null,
-      tags: data.tags || "[]",
-      assignedAgentId: data.assignedAgentId || session.user.id,
-    },
+
+  await createContactDoc({
+    ...data,
+    email: data.email || null,
+    tags: data.tags ?? [],
+    assignedAgentId: data.assignedAgentId || session.id,
   });
 
   revalidatePath("/contacts");
@@ -81,18 +79,14 @@ export async function createContact(formData: FormData) {
 }
 
 export async function updateContact(id: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
-
+  await requireSessionUser();
   const data = formToContact(formData);
-  await prisma.contact.update({
-    where: { id },
-    data: {
-      ...data,
-      email: data.email || null,
-      tags: data.tags || "[]",
-      assignedAgentId: data.assignedAgentId || null,
-    },
+
+  await updateContactDoc(id, {
+    ...data,
+    email: data.email || null,
+    tags: data.tags ?? [],
+    assignedAgentId: data.assignedAgentId || null,
   });
 
   revalidatePath("/contacts");
@@ -100,8 +94,7 @@ export async function updateContact(id: string, formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
-  await prisma.contact.delete({ where: { id } });
+  await requireSessionUser();
+  await removeContact(id);
   revalidatePath("/contacts");
 }

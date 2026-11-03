@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PROPERTY_TYPES, PROPERTY_STATUSES, labelize } from "@/lib/constants";
 import { createProperty, updateProperty } from "@/app/actions/properties";
-import { parseJsonArray } from "@/lib/utils";
+import { asStringArray } from "@/lib/utils";
 
 type Option = { id: string; name: string };
 type Property = {
@@ -26,8 +26,8 @@ type Property = {
   beds: number | null;
   baths: number | null;
   description: string | null;
-  photos: string;
-  documents: string;
+  photos: string[] | string;
+  documents: string[] | string;
   listingAgentId: string | null;
   ownerContactId: string | null;
 };
@@ -147,14 +147,14 @@ export function PropertyFormModal({
             <Label>Photo URLs (one per line)</Label>
             <Textarea
               name="photos"
-              defaultValue={parseJsonArray(property?.photos).join("\n")}
+              defaultValue={asStringArray(property?.photos).join("\n")}
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label>Document URLs (one per line)</Label>
             <Textarea
               name="documents"
-              defaultValue={parseJsonArray(property?.documents).join("\n")}
+              defaultValue={asStringArray(property?.documents).join("\n")}
             />
           </div>
           <div className="flex justify-end gap-2 sm:col-span-2">

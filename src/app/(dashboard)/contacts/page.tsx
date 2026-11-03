@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getTeamAgentIds, agentScopeWhere } from "@/lib/rbac";
-import { fullName, parseJsonArray } from "@/lib/utils";
+import { getSessionUser } from "@/lib/firebase/session";
+import { getUsers, listContacts } from "@/lib/db/crm";
+import { getTeamAgentIds } from "@/lib/rbac";
+import { fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -11,13 +11,37 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ContactFormModal } from "@/components/contacts/contact-form-modal";
 
+function contactMatchesSearch(
+  c: {
+    firstName: string;
+    lastName: string;
+    email?: string | null;
+    phone?: string | null;
+    city?: string | null;
+    type: string;
+    status: string;
+  },
+  q: string,
+  type: string,
+  status: string
+) {
+  if (type && c.type !== type) return false;
+  if (status && c.status !== status) return false;
+  if (!q) return true;
+  const hay = [c.firstName, c.lastName, c.email, c.phone, c.city]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
 export default async function ContactsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; type?: string; status?: string; page?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) return null;
+  const session = await getSessionUser();
+  if (!session) return null;
   const params = await searchParams;
   const q = params.q?.trim() || "";
   const type = params.type || "";
@@ -26,43 +50,26 @@ export default async function ContactsPage({
   const pageSize = 10;
 
   const agentIds = await getTeamAgentIds({
-    id: session.user.id,
-    role: session.user.role,
-    teamId: session.user.teamId,
+    id: session.id,
+    role: session.role,
+    teamId: session.teamId,
   });
 
-  const where = {
-    ...agentScopeWhere(agentIds),
-    ...(type ? { type } : {}),
-    ...(status ? { status } : {}),
-    ...(q
-      ? {
-          OR: [
-            { firstName: { contains: q } },
-            { lastName: { contains: q } },
-            { email: { contains: q } },
-            { phone: { contains: q } },
-            { city: { contains: q } },
-          ],
-        }
-      : {}),
-  };
-
-  const [total, contacts, agents] = await Promise.all([
-    prisma.contact.count({ where }),
-    prisma.contact.findMany({
-      where,
-      include: { assignedAgent: true },
-      orderBy: { updatedAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.user.findMany({
-      where: { role: { in: ["AGENT", "MANAGER", "ADMIN"] } },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+  const [allContacts, users] = await Promise.all([
+    listContacts(agentIds),
+    getUsers(),
   ]);
+
+  const filtered = allContacts.filter((c) =>
+    contactMatchesSearch(c, q, type, status)
+  );
+  const total = filtered.length;
+  const contacts = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
+  const agents = users
+    .filter((u) => ["AGENT", "MANAGER", "ADMIN"].includes(u.role))
+    .map((u) => ({ id: u.id, name: u.name }));
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -126,10 +133,14 @@ export default async function ContactsPage({
                     <Badge>{labelize(c.status)}</Badge>
                   </td>
                   <td className="px-4 py-3">{c.city || "—"}</td>
-                  <td className="px-4 py-3">{c.assignedAgent?.name || "—"}</td>
+                  <td className="px-4 py-3">
+                    {c.assignedAgentId
+                      ? userMap.get(c.assignedAgentId)?.name || "—"
+                      : "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {parseJsonArray(c.tags).slice(0, 3).map((tag) => (
+                      {(c.tags ?? []).slice(0, 3).map((tag) => (
                         <Badge key={tag} variant="secondary">
                           {tag}
                         </Badge>

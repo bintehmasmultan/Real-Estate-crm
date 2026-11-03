@@ -16,7 +16,7 @@ import {
   labelize,
 } from "@/lib/constants";
 import { createContact, updateContact } from "@/app/actions/contacts";
-import { parseJsonArray } from "@/lib/utils";
+import { asStringArray } from "@/lib/utils";
 
 type Agent = { id: string; name: string };
 type Contact = {
@@ -31,7 +31,7 @@ type Contact = {
   type: string;
   status: string;
   source: string | null;
-  tags: string;
+  tags: string[] | string;
   notes: string | null;
   budgetMin: number | null;
   budgetMax: number | null;
@@ -200,7 +200,7 @@ export function ContactFormModal({
             <Label>Tags (comma separated)</Label>
             <Input
               name="tags"
-              defaultValue={parseJsonArray(contact?.tags).join(", ")}
+              defaultValue={asStringArray(contact?.tags).join(", ")}
             />
           </div>
           <div className="space-y-1 sm:col-span-2">

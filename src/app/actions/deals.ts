@@ -2,8 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import {
+  createActivity,
+  createDeal as createDealDoc,
+  getStage,
+  updateDeal as updateDealDoc,
+} from "@/lib/db/crm";
+import { requireSessionUser } from "@/lib/firebase/session";
+import { nowIso } from "@/lib/db/firestore";
 
 const dealSchema = z.object({
   title: z.string().min(1),
@@ -34,57 +40,48 @@ function parseDeal(formData: FormData) {
 }
 
 export async function createDeal(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  const session = await requireSessionUser();
   const data = parseDeal(formData);
-  await prisma.deal.create({
-    data: {
-      title: data.title,
-      pipeline: data.pipeline,
-      stageId: data.stageId,
-      value: data.value,
-      probability: data.probability,
-      expectedCloseDate: data.expectedCloseDate
-        ? new Date(data.expectedCloseDate)
-        : null,
-      contactId: data.contactId || null,
-      propertyId: data.propertyId || null,
-      agentId: data.agentId || session.user.id,
-      notes: data.notes,
-    },
+
+  await createDealDoc({
+    title: data.title,
+    pipeline: data.pipeline,
+    stageId: data.stageId,
+    value: data.value,
+    probability: data.probability,
+    expectedCloseDate: data.expectedCloseDate || null,
+    contactId: data.contactId || null,
+    propertyId: data.propertyId || null,
+    agentId: data.agentId || session.id,
+    notes: data.notes,
   });
+
   revalidatePath("/deals");
   revalidatePath("/dashboard");
 }
 
 export async function updateDealStage(dealId: string, stageId: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  const session = await requireSessionUser();
 
-  const stage = await prisma.pipelineStage.findUnique({ where: { id: stageId } });
+  const stage = await getStage(stageId);
   if (!stage) throw new Error("Stage not found");
 
   const isClosed =
     stage.name.toLowerCase().includes("closed") ||
     stage.name.toLowerCase().includes("moved in");
 
-  await prisma.deal.update({
-    where: { id: dealId },
-    data: {
-      stageId,
-      closedAt: isClosed ? new Date() : null,
-      probability: isClosed ? 100 : undefined,
-    },
+  await updateDealDoc(dealId, {
+    stageId,
+    closedAt: isClosed ? nowIso() : null,
+    ...(isClosed ? { probability: 100 } : {}),
   });
 
-  await prisma.activity.create({
-    data: {
-      type: "STATUS_CHANGE",
-      subject: `Moved to ${stage.name}`,
-      body: `Deal stage updated to ${stage.name}`,
-      createdById: session.user.id,
-      dealId,
-    },
+  await createActivity({
+    type: "STATUS_CHANGE",
+    subject: `Moved to ${stage.name}`,
+    body: `Deal stage updated to ${stage.name}`,
+    createdById: session.id,
+    dealId,
   });
 
   revalidatePath("/deals");
@@ -92,25 +89,21 @@ export async function updateDealStage(dealId: string, stageId: string) {
 }
 
 export async function updateDeal(id: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  await requireSessionUser();
   const data = parseDeal(formData);
-  await prisma.deal.update({
-    where: { id },
-    data: {
-      title: data.title,
-      pipeline: data.pipeline,
-      stageId: data.stageId,
-      value: data.value,
-      probability: data.probability,
-      expectedCloseDate: data.expectedCloseDate
-        ? new Date(data.expectedCloseDate)
-        : null,
-      contactId: data.contactId || null,
-      propertyId: data.propertyId || null,
-      agentId: data.agentId || null,
-      notes: data.notes,
-    },
+
+  await updateDealDoc(id, {
+    title: data.title,
+    pipeline: data.pipeline,
+    stageId: data.stageId,
+    value: data.value,
+    probability: data.probability,
+    expectedCloseDate: data.expectedCloseDate || null,
+    contactId: data.contactId || null,
+    propertyId: data.propertyId || null,
+    agentId: data.agentId || null,
+    notes: data.notes,
   });
+
   revalidatePath("/deals");
 }

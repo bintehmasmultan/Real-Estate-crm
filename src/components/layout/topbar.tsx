@@ -2,7 +2,9 @@
 
 import { Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
-import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -14,6 +16,18 @@ export function Topbar({
   role?: string;
 }) {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    try {
+      await signOut(auth);
+    } catch {
+      // ignore client sign-out errors
+    }
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 md:px-6">
@@ -34,12 +48,7 @@ export function Topbar({
           <Sun className="h-4 w-4 dark:hidden" />
           <Moon className="hidden h-4 w-4 dark:block" />
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-        >
+        <Button variant="outline" size="sm" type="button" onClick={handleSignOut}>
           <LogOut className="h-4 w-4" />
           Sign out
         </Button>

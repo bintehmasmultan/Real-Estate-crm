@@ -1,7 +1,15 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getTeamAgentIds, dealAgentScopeWhere } from "@/lib/rbac";
+import { getSessionUser } from "@/lib/firebase/session";
+import {
+  getContact,
+  getProperty,
+  getUsers,
+  listContacts,
+  listDeals,
+  listProperties,
+  listStages,
+} from "@/lib/db/crm";
+import { getTeamAgentIds } from "@/lib/rbac";
 import { PageHeader } from "@/components/shared/page-header";
 import { KanbanBoard } from "@/components/deals/kanban-board";
 import { DealFormModal } from "@/components/deals/deal-form-modal";
@@ -12,46 +20,44 @@ export default async function DealsPage({
 }: {
   searchParams: Promise<{ pipeline?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) return null;
+  const session = await getSessionUser();
+  if (!session) return null;
   const params = await searchParams;
   const pipeline = params.pipeline === "RENTALS" ? "RENTALS" : "SALES";
 
   const agentIds = await getTeamAgentIds({
-    id: session.user.id,
-    role: session.user.role,
-    teamId: session.user.teamId,
+    id: session.id,
+    role: session.role,
+    teamId: session.teamId,
   });
 
-  const [stages, contacts, properties, agents] = await Promise.all([
-    prisma.pipelineStage.findMany({
-      where: { pipeline },
-      orderBy: { order: "asc" },
-      include: {
-        deals: {
-          where: dealAgentScopeWhere(agentIds),
-          include: {
-            contact: true,
-            property: true,
-            agent: true,
-          },
-          orderBy: { updatedAt: "desc" },
-        },
-      },
-    }),
-    prisma.contact.findMany({
-      select: { id: true, firstName: true, lastName: true },
-      orderBy: { firstName: "asc" },
-    }),
-    prisma.property.findMany({
-      select: { id: true, title: true },
-      orderBy: { title: "asc" },
-    }),
-    prisma.user.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+  const [stages, allDeals, contacts, properties, users] = await Promise.all([
+    listStages(pipeline),
+    listDeals(agentIds, pipeline),
+    listContacts(agentIds),
+    listProperties(agentIds),
+    getUsers(),
   ]);
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  const dealsEnriched = await Promise.all(
+    allDeals.map(async (d) => ({
+      ...d,
+      contact: d.contactId ? await getContact(d.contactId) : null,
+      property: d.propertyId ? await getProperty(d.propertyId) : null,
+      agent: d.agentId ? userMap.get(d.agentId) : null,
+    }))
+  );
+
+  const stagesForBoard = stages.map((s) => ({
+    id: s.id,
+    name: s.name,
+    color: s.color,
+    deals: dealsEnriched.filter((d) => d.stageId === s.id),
+  }));
+
+  const agents = users.map((u) => ({ id: u.id, name: u.name }));
 
   return (
     <div>
@@ -66,7 +72,7 @@ export default async function DealsPage({
               id: c.id,
               name: fullName(c.firstName, c.lastName),
             }))}
-            properties={properties}
+            properties={properties.map((p) => ({ id: p.id, title: p.title }))}
             agents={agents}
           />
         }
@@ -95,14 +101,7 @@ export default async function DealsPage({
         </Link>
       </div>
 
-      <KanbanBoard
-        stages={stages.map((s) => ({
-          id: s.id,
-          name: s.name,
-          color: s.color,
-          deals: s.deals,
-        }))}
-      />
+      <KanbanBoard stages={stagesForBoard} />
     </div>
   );
 }

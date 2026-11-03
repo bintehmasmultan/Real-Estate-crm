@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Building } from "lucide-react";
-import { auth } from "@/lib/auth";
-import { loginAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { getSessionUser } from "@/lib/firebase/session";
+import { hasFirebaseAdminCredentials } from "@/lib/firebase/admin";
+import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function LoginPage() {
-  const session = await auth();
-  if (session?.user) redirect("/dashboard");
+  const session = await getSessionUser();
+  if (session) redirect("/dashboard");
+  const adminReady = hasFirebaseAdminCredentials();
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4">
@@ -22,35 +21,26 @@ export default async function LoginPage() {
           </div>
           <CardTitle className="text-2xl text-white">Sign in to EstateCRM</CardTitle>
           <CardDescription className="text-slate-400">
-            Use a seeded demo account or your own credentials
+            Firebase Auth · use a seeded demo account or create one
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={loginAction} className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-slate-200">Email</Label>
-              <Input
-                name="email"
-                type="email"
-                required
-                defaultValue="admin@crm.local"
-                className="border-slate-700 bg-slate-950 text-white"
-              />
+          {!adminReady ? (
+            <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+              Add <code>FIREBASE_CLIENT_EMAIL</code> and <code>FIREBASE_PRIVATE_KEY</code> to{" "}
+              <code>.env.local</code> from the{" "}
+              <a
+                className="underline"
+                href="https://console.firebase.google.com/project/estate-crm-web/settings/serviceaccounts/adminsdk"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Firebase service account page
+              </a>
+              , then run <code>npm run db:seed</code> and restart the server.
             </div>
-            <div className="space-y-2">
-              <Label className="text-slate-200">Password</Label>
-              <Input
-                name="password"
-                type="password"
-                required
-                defaultValue="password123"
-                className="border-slate-700 bg-slate-950 text-white"
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              Sign in
-            </Button>
-          </form>
+          ) : null}
+          <LoginForm />
           <p className="mt-4 text-center text-sm text-slate-400">
             No account?{" "}
             <Link href="/signup" className="text-emerald-400 hover:underline">

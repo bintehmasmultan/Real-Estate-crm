@@ -1,0 +1,128 @@
+import Link from "next/link";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getTeamAgentIds, propertyAgentScopeWhere } from "@/lib/rbac";
+import { formatCurrency, fullName } from "@/lib/utils";
+import { labelize } from "@/lib/constants";
+import { PageHeader } from "@/components/shared/page-header";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { PropertyFormModal } from "@/components/properties/property-form-modal";
+
+export default async function PropertiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; type?: string }>;
+}) {
+  const session = await auth();
+  if (!session?.user) return null;
+  const params = await searchParams;
+  const q = params.q?.trim() || "";
+  const status = params.status || "";
+  const type = params.type || "";
+
+  const agentIds = await getTeamAgentIds({
+    id: session.user.id,
+    role: session.user.role,
+    teamId: session.user.teamId,
+  });
+
+  const where = {
+    ...propertyAgentScopeWhere(agentIds),
+    ...(status ? { status } : {}),
+    ...(type ? { type } : {}),
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q } },
+            { address: { contains: q } },
+            { city: { contains: q } },
+          ],
+        }
+      : {}),
+  };
+
+  const [properties, agents, contacts] = await Promise.all([
+    prisma.property.findMany({
+      where,
+      include: { listingAgent: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.contact.findMany({
+      select: { id: true, firstName: true, lastName: true },
+      orderBy: { firstName: "asc" },
+    }),
+  ]);
+
+  return (
+    <div>
+      <PageHeader
+        title="Properties"
+        description="Listings across sales and rentals"
+        actions={
+          <PropertyFormModal
+            agents={agents}
+            contacts={contacts.map((c) => ({
+              id: c.id,
+              name: fullName(c.firstName, c.lastName),
+            }))}
+          />
+        }
+      />
+
+      <form className="mb-4 grid gap-2 md:grid-cols-4">
+        <Input name="q" placeholder="Search listings..." defaultValue={q} />
+        <Select name="type" defaultValue={type}>
+          <option value="">All types</option>
+          {["APARTMENT", "HOUSE", "PLOT", "COMMERCIAL"].map((t) => (
+            <option key={t} value={t}>{labelize(t)}</option>
+          ))}
+        </Select>
+        <Select name="status" defaultValue={status}>
+          <option value="">All statuses</option>
+          {["AVAILABLE", "UNDER_OFFER", "SOLD", "RENTED", "OFF_MARKET"].map((t) => (
+            <option key={t} value={t}>{labelize(t)}</option>
+          ))}
+        </Select>
+        <button className="h-10 rounded-lg bg-slate-900 text-sm font-medium text-white dark:bg-slate-100 dark:text-slate-900">
+          Filter
+        </button>
+      </form>
+
+      {properties.length === 0 ? (
+        <EmptyState title="No properties found" />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {properties.map((p) => (
+            <Link
+              key={p.id}
+              href={`/properties/${p.id}`}
+              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <h3 className="font-medium leading-snug">{p.title}</h3>
+                <Badge variant={p.status === "AVAILABLE" ? "default" : "secondary"}>
+                  {labelize(p.status)}
+                </Badge>
+              </div>
+              <p className="text-sm text-slate-500">{p.address}, {p.city}</p>
+              <p className="mt-2 text-lg font-semibold text-emerald-700 dark:text-emerald-400">
+                {formatCurrency(p.price)}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {labelize(p.type)}
+                {p.area ? ` · ${p.area} ${p.areaUnit}` : ""}
+                {p.beds ? ` · ${p.beds} beds` : ""}
+                {" · "}
+                {p.listingAgent?.name || "Unassigned"}
+              </p>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

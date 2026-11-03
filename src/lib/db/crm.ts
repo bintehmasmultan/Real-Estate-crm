@@ -37,6 +37,10 @@ export async function getUser(id: string) {
   return getDoc<AppUser>("users", id);
 }
 
+export async function updateUser(id: string, data: Partial<AppUser>) {
+  return updateDoc("users", id, data);
+}
+
 export async function listContacts(agentIds: string[] | null) {
   const rows = await listDocs<Contact>("contacts");
   return rows

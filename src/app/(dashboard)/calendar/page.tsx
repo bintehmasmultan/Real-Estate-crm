@@ -1,3 +1,17 @@
+import Link from "next/link";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  isValid,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 import { getSessionUser } from "@/lib/firebase/session";
 import {
   getContact,
@@ -13,9 +27,75 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default async function CalendarPage() {
+type CalendarEvent = {
+  id: string;
+  at: string;
+  day: string;
+  title: string;
+  kind: "TASK" | "VIEWING" | "MEETING";
+  detail: string;
+  openTask: boolean;
+  assigneeId?: string | null;
+  contactId?: string | null;
+  propertyId?: string | null;
+};
+
+function monthStartFromParam(value: string | undefined) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value || "");
+  if (!match) return startOfMonth(new Date());
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return startOfMonth(new Date());
+  return new Date(year, month - 1, 1);
+}
+
+function dayKey(value: string) {
+  const parsed = parseISO(value);
+  if (!isValid(parsed)) return null;
+  return format(parsed, "yyyy-MM-dd");
+}
+
+async function describeEvents(events: CalendarEvent[]) {
+  return Promise.all(
+    events.map(async (event) => {
+      const [assignee, contact, property] = await Promise.all([
+        event.assigneeId ? getUser(event.assigneeId) : null,
+        event.contactId ? getContact(event.contactId) : null,
+        event.propertyId ? getProperty(event.propertyId) : null,
+      ]);
+      const extra = [
+        event.kind === "TASK" ? assignee?.name || "Unassigned" : null,
+        contact ? `${contact.firstName} ${contact.lastName}` : null,
+        property?.title,
+      ].filter(Boolean);
+      return {
+        ...event,
+        detail: [event.detail, ...extra].filter(Boolean).join(" · "),
+      };
+    })
+  );
+}
+
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string; day?: string }>;
+}) {
   const session = await getSessionUser();
   if (!session) return null;
+
+  const params = await searchParams;
+  const monthStart = monthStartFromParam(
+    typeof params.month === "string" ? params.month : undefined
+  );
+  const monthKey = format(monthStart, "yyyy-MM");
+  const requestedDay =
+    typeof params.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.day)
+      ? params.day
+      : format(new Date(), "yyyy-MM-dd");
+  const selectedDay = requestedDay.startsWith(monthKey)
+    ? requestedDay
+    : format(monthStart, "yyyy-MM-dd");
 
   const agentIds = await getTeamAgentIds({
     id: session.id,
@@ -23,78 +103,176 @@ export default async function CalendarPage() {
     teamId: session.teamId,
   });
 
-  const now = new Date();
-  const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
-  const nowIso = now.toISOString();
-  const horizonIso = horizon.toISOString();
-
   const [allTasks, allActivities] = await Promise.all([
     listTasks(agentIds),
     listActivities({ createdByIds: agentIds }),
   ]);
 
-  const tasks = allTasks
-    .filter(
-      (t) =>
-        t.dueAt &&
-        t.dueAt >= nowIso &&
-        t.dueAt <= horizonIso &&
-        (t.status === "TODO" || t.status === "IN_PROGRESS")
-    )
-    .sort((a, b) => (a.dueAt || "").localeCompare(b.dueAt || ""));
+  const taskEvents: CalendarEvent[] = allTasks.flatMap((task) => {
+    if (!task.dueAt) return [];
+    const day = dayKey(task.dueAt);
+    if (!day) return [];
+    return [
+      {
+        id: task.id,
+        at: task.dueAt,
+        day,
+        title: task.title,
+        kind: "TASK" as const,
+        detail: labelize(task.priority),
+        openTask: task.status === "TODO" || task.status === "IN_PROGRESS",
+        assigneeId: task.assigneeId,
+        contactId: null,
+        propertyId: null,
+      },
+    ];
+  });
 
-  const viewings = allActivities
-    .filter(
-      (a) =>
-        (a.type === "VIEWING" || a.type === "MEETING") &&
-        a.scheduledAt &&
-        a.scheduledAt >= nowIso &&
-        a.scheduledAt <= horizonIso
-    )
-    .sort((a, b) => (a.scheduledAt || "").localeCompare(b.scheduledAt || ""));
+  const meetingEvents: CalendarEvent[] = allActivities.flatMap((activity) => {
+    if (activity.type !== "VIEWING" && activity.type !== "MEETING") return [];
+    if (!activity.scheduledAt) return [];
+    const day = dayKey(activity.scheduledAt);
+    if (!day) return [];
+    return [
+      {
+        id: activity.id,
+        at: activity.scheduledAt,
+        day,
+        title: activity.subject || labelize(activity.type),
+        kind: activity.type,
+        detail: "",
+        openTask: false,
+        assigneeId: null,
+        contactId: activity.contactId,
+        propertyId: activity.propertyId,
+      },
+    ];
+  });
 
-  const taskRows = await Promise.all(
-    tasks.map(async (t) => ({
-      ...t,
-      assignee: t.assigneeId ? await getUser(t.assigneeId) : null,
-    }))
+  const events: CalendarEvent[] = [...taskEvents, ...meetingEvents].sort((a, b) =>
+    a.at.localeCompare(b.at)
+  );
+  const inMonth = events.filter((event) => event.day.startsWith(monthKey));
+  const byDay = new Map<string, CalendarEvent[]>();
+  for (const event of inMonth) {
+    const list = byDay.get(event.day) ?? [];
+    list.push(event);
+    byDay.set(event.day, list);
+  }
+
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const gridEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 });
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+  const selectedEvents = await describeEvents(byDay.get(selectedDay) ?? []);
+  const overdue = await describeEvents(
+    taskEvents.filter((event) => event.openTask && event.day < todayKey).slice(0, 8)
   );
 
-  const viewingRows = await Promise.all(
-    viewings.map(async (v) => ({
-      ...v,
-      contact: v.contactId ? await getContact(v.contactId) : null,
-      property: v.propertyId ? await getProperty(v.propertyId) : null,
-      createdBy: v.createdById ? await getUser(v.createdById) : null,
-    }))
-  );
+  const prev = format(addMonths(monthStart, -1), "yyyy-MM");
+  const next = format(addMonths(monthStart, 1), "yyyy-MM");
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Calendar"
-        description="Upcoming viewings, meetings, and follow-ups (next 30 days)"
+        description="Tasks, viewings, and meetings for the month"
+        actions={
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/calendar?month=${prev}`}
+              className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
+            >
+              Previous
+            </Link>
+            <span className="min-w-32 text-center text-sm font-medium">
+              {format(monthStart, "MMMM yyyy")}
+            </span>
+            <Link
+              href={`/calendar?month=${next}`}
+              className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
+            >
+              Next
+            </Link>
+          </div>
+        }
       />
+
+      <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium uppercase tracking-wide text-slate-500">
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => (
+              <div key={label} className="py-1">
+                {label}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((day) => {
+              const key = format(day, "yyyy-MM-dd");
+              const items = byDay.get(key) ?? [];
+              const inThisMonth = isSameMonth(day, monthStart);
+              const selected = key === selectedDay;
+              return (
+                <Link
+                  key={key}
+                  href={`/calendar?month=${monthKey}&day=${key}`}
+                  className={`min-h-16 rounded-lg border p-1.5 text-left sm:min-h-24 ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40"
+                      : "border-transparent hover:border-slate-200 dark:hover:border-slate-800"
+                  } ${inThisMonth ? "" : "opacity-40"}`}
+                >
+                  <span
+                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+                      key === todayKey ? "bg-emerald-600 text-white" : ""
+                    }`}
+                  >
+                    {format(day, "d")}
+                  </span>
+                  <div className="mt-1 space-y-1">
+                    {items.slice(0, 2).map((event) => (
+                      <p
+                        key={event.id}
+                        className="truncate rounded bg-slate-100 px-1 text-[10px] leading-4 dark:bg-slate-800"
+                      >
+                        {event.title}
+                      </p>
+                    ))}
+                    {items.length > 2 ? (
+                      <p className="text-[10px] text-slate-500">+{items.length - 2}</p>
+                    ) : null}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Viewings & meetings</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>
+              {format(parseISO(selectedDay), "d MMM yyyy")}
+              {isSameDay(parseISO(selectedDay), new Date()) ? " · Today" : ""}
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
-            {viewingRows.length === 0 ? (
+            {selectedEvents.length === 0 ? (
               <p className="text-sm text-slate-500">Nothing scheduled</p>
             ) : (
-              viewingRows.map((v) => (
-                <div key={v.id} className="rounded-lg border p-3">
+              selectedEvents.map((event) => (
+                <div key={event.id} className="rounded-lg border p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">{v.subject || labelize(v.type)}</p>
-                    <Badge variant="info">{labelize(v.type)}</Badge>
+                    <p className="text-sm font-medium">{event.title}</p>
+                    <Badge variant={event.kind === "TASK" ? "warning" : "info"}>
+                      {labelize(event.kind)}
+                    </Badge>
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
-                    {formatDateTime(v.scheduledAt)}
-                    {v.contact
-                      ? ` · ${v.contact.firstName} ${v.contact.lastName}`
-                      : ""}
-                    {v.property ? ` · ${v.property.title}` : ""}
+                    {formatDateTime(event.at)}
+                    {event.detail ? ` · ${event.detail}` : ""}
                   </p>
                 </div>
               ))
@@ -103,21 +281,24 @@ export default async function CalendarPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Follow-up tasks</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Overdue tasks</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
-            {taskRows.length === 0 ? (
-              <p className="text-sm text-slate-500">No upcoming tasks</p>
+            {overdue.length === 0 ? (
+              <p className="text-sm text-slate-500">No overdue tasks</p>
             ) : (
-              taskRows.map((t) => (
-                <div key={t.id} className="rounded-lg border p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">{t.title}</p>
-                    <Badge variant="warning">{labelize(t.priority)}</Badge>
-                  </div>
+              overdue.slice(0, 8).map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/calendar?month=${event.day.slice(0, 7)}&day=${event.day}`}
+                  className="block rounded-lg border p-3 hover:border-amber-300"
+                >
+                  <p className="text-sm font-medium">{event.title}</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {formatDateTime(t.dueAt)} · {t.assignee?.name || "Unassigned"}
+                    {formatDateTime(event.at)} · {event.detail}
                   </p>
-                </div>
+                </Link>
               ))
             )}
           </CardContent>

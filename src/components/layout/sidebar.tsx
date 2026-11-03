@@ -11,6 +11,7 @@ import {
   CheckSquare,
   CalendarDays,
   BarChart3,
+  ShieldCheck,
   Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ const nav = [
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
-export function Sidebar() {
+export function Sidebar({ showAdmin = false }: { showAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -41,7 +42,10 @@ export function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 space-y-1 p-3">
-        {nav.map((item) => {
+        {(showAdmin
+          ? [...nav, { href: "/admin/users", label: "Team access", icon: ShieldCheck }]
+          : nav
+        ).map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;

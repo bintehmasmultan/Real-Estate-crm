@@ -32,7 +32,8 @@ export function SignupForm() {
         body: JSON.stringify({ idToken }),
       });
       if (!res.ok) throw new Error("Session failed");
-      router.push("/dashboard");
+      const body = (await res.json()) as { role?: string };
+      router.push(body.role === "PENDING" ? "/pending-approval" : "/dashboard");
       router.refresh();
     } catch {
       setError("Could not create account");
@@ -68,7 +69,7 @@ export function SignupForm() {
       </div>
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Creating..." : "Create account"}
+        {pending ? "Creating..." : "Request access"}
       </Button>
     </form>
   );

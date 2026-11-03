@@ -2,6 +2,8 @@
  * Seeds Firestore + Firebase Auth demo data for estate-crm-web.
  * Requires FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID
  * (load from .env.local when running locally).
+ * Refuses to run when NODE_ENV, VERCEL_ENV, or FIREBASE_ENV is production
+ * unless ALLOW_PROD_SEED=true.
  */
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
@@ -31,6 +33,38 @@ function loadEnvFile(relativePath: string) {
 
 loadEnvFile(".env.local");
 loadEnvFile(".env");
+
+function assertSeedAllowed() {
+  const signals: string[] = [];
+  if (process.env.NODE_ENV === "production") signals.push("NODE_ENV=production");
+  if (process.env.VERCEL_ENV === "production") signals.push("VERCEL_ENV=production");
+  if (process.env.FIREBASE_ENV === "production") signals.push("FIREBASE_ENV=production");
+
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
+  const blockedProjects = (process.env.PRODUCTION_FIREBASE_PROJECT_IDS || "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (projectId && blockedProjects.includes(projectId)) {
+    signals.push(`${projectId} is listed in PRODUCTION_FIREBASE_PROJECT_IDS`);
+  }
+
+  if (signals.length === 0) return;
+
+  if (process.env.ALLOW_PROD_SEED === "true") {
+    console.warn(
+      `ALLOW_PROD_SEED=true set; continuing despite production signals: ${signals.join(", ")}`
+    );
+    return;
+  }
+
+  console.error(
+    `Refusing to seed a production target (${signals.join(", ")}).\n` +
+      "This script deletes CRM collections and resets demo Auth users.\n" +
+      "Set ALLOW_PROD_SEED=true only when you intend to wipe that data."
+  );
+  process.exit(1);
+}
 
 const COLLECTIONS = [
   "notes",
@@ -112,6 +146,8 @@ async function ensureAuthUser(email: string, password: string, displayName: stri
 }
 
 async function main() {
+  assertSeedAllowed();
+
   if (!process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
     throw new Error(
       "Set FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY (see .env.example)"

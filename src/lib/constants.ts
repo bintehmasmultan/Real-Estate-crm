@@ -1,5 +1,25 @@
-export const ROLES = ["ADMIN", "MANAGER", "AGENT"] as const;
+export const ROLES = ["ADMIN", "MANAGER", "AGENT", "PENDING"] as const;
 export type Role = (typeof ROLES)[number];
+
+/** Roles that may read and write CRM data. PENDING is waiting on an admin. */
+export const CRM_ROLES = ["ADMIN", "MANAGER", "AGENT"] as const;
+export type CrmRole = (typeof CRM_ROLES)[number];
+
+export function normalizeRole(value: unknown): Role {
+  if (
+    value === "ADMIN" ||
+    value === "MANAGER" ||
+    value === "AGENT" ||
+    value === "PENDING"
+  ) {
+    return value;
+  }
+  return "PENDING";
+}
+
+export function isCrmRole(role: Role): role is CrmRole {
+  return role !== "PENDING";
+}
 
 export const CONTACT_TYPES = [
   "BUYER",

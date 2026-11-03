@@ -68,7 +68,7 @@ export default async function ContactsPage({
 
   const userMap = new Map(users.map((u) => [u.id, u]));
   const agents = users
-    .filter((u) => ["AGENT", "MANAGER", "ADMIN"].includes(u.role))
+    .filter((u) => u.role === "AGENT" || u.role === "MANAGER" || u.role === "ADMIN")
     .map((u) => ({ id: u.id, name: u.name }));
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

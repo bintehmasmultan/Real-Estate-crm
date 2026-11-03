@@ -30,7 +30,8 @@ export function LoginForm() {
         body: JSON.stringify({ idToken }),
       });
       if (!res.ok) throw new Error("Session failed");
-      router.push("/dashboard");
+      const body = (await res.json()) as { role?: string };
+      router.push(body.role === "PENDING" ? "/pending-approval" : "/dashboard");
       router.refresh();
     } catch {
       setError("Invalid email or password");

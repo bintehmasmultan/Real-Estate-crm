@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSessionCookie } from "@/lib/firebase/session";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { normalizeRole } from "@/lib/constants";
 
 export async function POST(req: Request) {
   try {
@@ -13,21 +14,26 @@ export async function POST(req: Request) {
     const userRef = getAdminDb().collection("users").doc(decoded.uid);
     const existing = await userRef.get();
 
+    // Self-service sign-in never chooses a role. New profiles stay PENDING
+    // until an admin assigns ADMIN, MANAGER, or AGENT. Existing roles are kept.
+    const role = existing.exists ? normalizeRole(existing.data()?.role) : "PENDING";
+
     if (!existing.exists) {
+      const now = new Date().toISOString();
       await userRef.set({
-        name: decoded.name || decoded.email?.split("@")[0] || "Agent",
+        name: decoded.name || decoded.email?.split("@")[0] || "New user",
         email: (decoded.email || "").toLowerCase(),
-        role: "AGENT",
+        role,
         teamId: null,
         phone: null,
         avatarUrl: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       });
     }
 
     await createSessionCookie(idToken);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, role });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });

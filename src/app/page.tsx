@@ -3,5 +3,7 @@ import { getSessionUser } from "@/lib/firebase/session";
 
 export default async function HomePage() {
   const session = await getSessionUser();
-  redirect(session ? "/dashboard" : "/login");
+  if (!session) redirect("/login");
+  if (session.role === "PENDING") redirect("/pending-approval");
+  redirect("/dashboard");
 }

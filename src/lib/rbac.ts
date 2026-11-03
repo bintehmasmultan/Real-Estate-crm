@@ -1,6 +1,6 @@
 import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
-import type { Role } from "@/lib/constants";
+import { isCrmRole, type Role } from "@/lib/constants";
 
 export type SessionUser = {
   id: string;
@@ -9,6 +9,7 @@ export type SessionUser = {
 };
 
 export async function getTeamAgentIds(user: SessionUser) {
+  if (!isCrmRole(user.role)) return [];
   if (user.role === "ADMIN") return null;
   if (user.role === "AGENT") return [user.id];
 

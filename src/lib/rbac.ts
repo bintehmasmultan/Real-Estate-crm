@@ -31,3 +31,19 @@ export function inAgentScope(
   if (!fieldValue) return false;
   return agentIds.includes(fieldValue);
 }
+
+/** Admin can manage any listing; others only properties in their agent scope. */
+export function canManageProperty(
+  user: SessionUser,
+  listingAgentId?: string | null,
+  agentIds?: string[] | null
+) {
+  if (user.role === "ADMIN") return true;
+  if (listingAgentId && listingAgentId === user.id) return true;
+  if (agentIds === undefined) return false;
+  return inAgentScope(agentIds, listingAgentId);
+}
+
+export function canCreateProperty(user: SessionUser) {
+  return isCrmRole(user.role);
+}

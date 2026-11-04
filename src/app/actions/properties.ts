@@ -4,10 +4,16 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   createProperty as createPropertyDoc,
+  getProperty,
   removeProperty,
   updateProperty as updatePropertyDoc,
 } from "@/lib/db/crm";
 import { requireSessionUser } from "@/lib/firebase/session";
+import {
+  canCreateProperty,
+  canManageProperty,
+  getTeamAgentIds,
+} from "@/lib/rbac";
 
 const propertySchema = z.object({
   title: z.string().min(1),
@@ -58,13 +64,24 @@ function formToProperty(formData: FormData) {
 
 export async function createProperty(formData: FormData) {
   const session = await requireSessionUser();
+  if (!canCreateProperty(session)) throw new Error("Unauthorized");
+
   const data = formToProperty(formData);
+  const agentIds = await getTeamAgentIds(session);
+
+  let listingAgentId = data.listingAgentId || session.id;
+  if (session.role !== "ADMIN") {
+    // Non-admins can only assign within their team scope (usually themselves).
+    if (!inScopeOrSelf(agentIds, listingAgentId, session.id)) {
+      listingAgentId = session.id;
+    }
+  }
 
   await createPropertyDoc({
     ...data,
     photos: data.photos ?? [],
     documents: data.documents ?? [],
-    listingAgentId: data.listingAgentId || session.id,
+    listingAgentId,
     ownerContactId: data.ownerContactId || null,
   });
 
@@ -73,14 +90,28 @@ export async function createProperty(formData: FormData) {
 }
 
 export async function updateProperty(id: string, formData: FormData) {
-  await requireSessionUser();
+  const session = await requireSessionUser();
+  const existing = await getProperty(id);
+  if (!existing) throw new Error("Property not found");
+
+  const agentIds = await getTeamAgentIds(session);
+  if (!canManageProperty(session, existing.listingAgentId, agentIds)) {
+    throw new Error("Unauthorized");
+  }
+
   const data = formToProperty(formData);
+  let listingAgentId = data.listingAgentId || existing.listingAgentId || session.id;
+  if (session.role !== "ADMIN") {
+    if (!inScopeOrSelf(agentIds, listingAgentId, session.id)) {
+      listingAgentId = existing.listingAgentId || session.id;
+    }
+  }
 
   await updatePropertyDoc(id, {
     ...data,
     photos: data.photos ?? [],
     documents: data.documents ?? [],
-    listingAgentId: data.listingAgentId || null,
+    listingAgentId,
     ownerContactId: data.ownerContactId || null,
   });
 
@@ -89,7 +120,26 @@ export async function updateProperty(id: string, formData: FormData) {
 }
 
 export async function deleteProperty(id: string) {
-  await requireSessionUser();
+  const session = await requireSessionUser();
+  const existing = await getProperty(id);
+  if (!existing) throw new Error("Property not found");
+
+  const agentIds = await getTeamAgentIds(session);
+  if (!canManageProperty(session, existing.listingAgentId, agentIds)) {
+    throw new Error("Unauthorized");
+  }
+
   await removeProperty(id);
   revalidatePath("/properties");
+  revalidatePath("/dashboard");
+}
+
+function inScopeOrSelf(
+  agentIds: string[] | null,
+  listingAgentId: string,
+  selfId: string
+) {
+  if (listingAgentId === selfId) return true;
+  if (agentIds === null) return true;
+  return agentIds.includes(listingAgentId);
 }

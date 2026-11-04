@@ -10,13 +10,14 @@ import {
   listContacts,
   listDeals,
 } from "@/lib/db/crm";
-import { getTeamAgentIds } from "@/lib/rbac";
+import { canManageProperty, getTeamAgentIds } from "@/lib/rbac";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PropertyFormModal } from "@/components/properties/property-form-modal";
+import { PropertyDeleteButton } from "@/components/properties/property-delete-button";
 
 export default async function PropertyDetailPage({
   params,
@@ -44,7 +45,18 @@ export default async function PropertyDetailPage({
   ]);
 
   const userMap = new Map(users.map((u) => [u.id, u]));
-  const agents = users.map((u) => ({ id: u.id, name: u.name }));
+  const canManage = canManageProperty(
+    session,
+    property.listingAgentId,
+    agentIds
+  );
+  const canAssignAgent = session.role === "ADMIN";
+  const agents =
+    session.role === "ADMIN"
+      ? users.map((u) => ({ id: u.id, name: u.name }))
+      : users
+          .filter((u) => agentIds === null || agentIds.includes(u.id))
+          .map((u) => ({ id: u.id, name: u.name }));
   const listingAgent = property.listingAgentId
     ? userMap.get(property.listingAgentId)
     : null;
@@ -79,15 +91,25 @@ export default async function PropertyDetailPage({
         actions={
           <>
             <Link href="/properties" className="rounded-lg border px-3 py-2 text-sm">Back</Link>
-            <PropertyFormModal
-              agents={agents}
-              contacts={contacts.map((c) => ({
-                id: c.id,
-                name: fullName(c.firstName, c.lastName),
-              }))}
-              property={property}
-              triggerLabel="Edit"
-            />
+            {canManage ? (
+              <>
+                <PropertyFormModal
+                  agents={agents}
+                  contacts={contacts.map((c) => ({
+                    id: c.id,
+                    name: fullName(c.firstName, c.lastName),
+                  }))}
+                  property={property}
+                  triggerLabel="Edit"
+                  canAssignAgent={canAssignAgent}
+                  defaultAgentId={session.id}
+                />
+                <PropertyDeleteButton
+                  propertyId={property.id}
+                  title={property.title}
+                />
+              </>
+            ) : null}
           </>
         }
       />

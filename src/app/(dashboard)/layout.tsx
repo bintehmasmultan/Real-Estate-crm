@@ -19,7 +19,9 @@ export default async function DashboardLayout({
         <Sidebar showAdmin={session.role === "ADMIN"} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar name={session.name} role={session.role} />
-        <main className="flex-1 p-4 pb-24 md:p-6 lg:pb-6">{children}</main>
+        <main className="flex-1 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-6 lg:pb-6">
+          {children}
+        </main>
         <MobileNav />
       </div>
     </div>

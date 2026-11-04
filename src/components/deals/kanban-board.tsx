@@ -7,6 +7,7 @@ import { updateDealStage } from "@/app/actions/deals";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { DealDeleteButton } from "@/components/deals/deal-delete-button";
+import { AiAssistPanel } from "@/components/ai/ai-assist-panel";
 
 type DealCard = {
   id: string;
@@ -15,6 +16,7 @@ type DealCard = {
   probability: number;
   stageId: string;
   canDelete?: boolean;
+  contactId?: string | null;
   contact?: { firstName: string; lastName: string } | null;
   property?: { title: string } | null;
   agent?: { name: string } | null;
@@ -111,11 +113,17 @@ export function KanbanBoard({ stages }: { stages: Stage[] }) {
                               {deal.agent?.name || "Unassigned"}
                             </span>
                           </div>
-                          {deal.canDelete ? (
-                            <div className="mt-2 flex justify-end">
+                          <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                            <AiAssistPanel
+                              dealId={deal.id}
+                              contactId={deal.contactId ?? undefined}
+                              triggerLabel="AI"
+                              triggerSize="sm"
+                            />
+                            {deal.canDelete ? (
                               <DealDeleteButton id={deal.id} title={deal.title} />
-                            </div>
-                          ) : null}
+                            ) : null}
+                          </div>
                         </div>
                       )}
                     </Draggable>

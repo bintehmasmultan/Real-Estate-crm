@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -8,40 +9,115 @@ import {
   Building2,
   Target,
   KanbanSquare,
+  Inbox,
   MoreHorizontal,
+  CheckSquare,
+  CalendarDays,
+  BarChart3,
+  UserRound,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const items = [
+const primaryItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/properties", label: "Listings", icon: Building2 },
-  { href: "/leads", label: "Leads", icon: Target },
   { href: "/deals", label: "Deals", icon: KanbanSquare },
-  { href: "/tasks", label: "More", icon: MoreHorizontal },
+];
+
+const moreItems = [
+  { href: "/leads", label: "Leads", icon: Target },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/settings/profile", label: "Profile", icon: UserRound },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const moreActive = moreItems.some((item) => pathname.startsWith(item.href));
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white px-2 py-2 dark:border-slate-800 dark:bg-slate-950 lg:hidden">
-      {items.map((item) => {
-        const active = pathname.startsWith(item.href);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-1 rounded-lg py-1 text-[10px]",
-              active ? "text-emerald-600" : "text-slate-500"
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      {moreOpen ? (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="absolute inset-0 bg-slate-950/40"
+            onClick={() => setMoreOpen(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl dark:border-slate-800 dark:bg-slate-950">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold">More</p>
+              <button
+                type="button"
+                className="touch-target inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900"
+                onClick={() => setMoreOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {moreItems.map((item) => {
+                const Icon = item.icon;
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      "flex min-h-12 items-center gap-2 rounded-xl border px-3 py-3 text-sm",
+                      active
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        : "border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200"
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white px-1 pt-1 dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+        {primaryItems.map((item) => {
+          const active = pathname.startsWith(item.href);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px]",
+                active ? "text-emerald-600" : "text-slate-500"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          className={cn(
+            "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px]",
+            moreActive || moreOpen ? "text-emerald-600" : "text-slate-500"
+          )}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+          More
+        </button>
+      </nav>
+    </>
   );
 }

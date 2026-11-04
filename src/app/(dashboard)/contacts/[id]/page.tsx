@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContactFormModal } from "@/components/contacts/contact-form-modal";
 import { ContactDeleteButton } from "@/components/contacts/contact-delete-button";
 import { ActivityForm } from "@/components/shared/activity-form";
+import { AiAssistPanel } from "@/components/ai/ai-assist-panel";
 
 export default async function ContactDetailPage({
   params,
@@ -88,6 +89,7 @@ export default async function ContactDetailPage({
             <Link href="/contacts" className="rounded-lg border px-3 py-2 text-sm">
               Back
             </Link>
+            <AiAssistPanel contactId={contact.id} />
             {canManage ? (
               <ContactFormModal agents={agents} contact={contact} triggerLabel="Edit" />
             ) : null}

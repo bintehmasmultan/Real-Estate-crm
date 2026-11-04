@@ -32,6 +32,7 @@ export function DeleteRecordButton({
       type="button"
       variant="danger"
       size={size}
+      className="min-h-10 touch-manipulation"
       disabled={pending}
       onClick={(e) => {
         e.preventDefault();

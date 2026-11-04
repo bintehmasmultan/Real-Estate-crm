@@ -45,6 +45,7 @@ export default async function DealsPage({
     allDeals.map(async (d) => ({
       ...d,
       canDelete: canDeleteRecords(session),
+      contactId: d.contactId,
       contact: d.contactId ? await getContact(d.contactId) : null,
       property: d.propertyId ? await getProperty(d.propertyId) : null,
       agent: d.agentId ? userMap.get(d.agentId) : null,

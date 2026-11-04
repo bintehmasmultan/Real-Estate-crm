@@ -123,7 +123,13 @@ export function InviteToTeamForm({ teams }: { teams: TeamOption[] }) {
               {copied ? "Copied" : "Copy link"}
             </Button>
             {gmailUrl ? (
-              <Button type="button" size="sm" asChild={false} onClick={() => window.open(gmailUrl, "_blank", "noopener,noreferrer")}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() =>
+                  window.open(gmailUrl, "_blank", "noopener,noreferrer")
+                }
+              >
                 Open Gmail compose
               </Button>
             ) : null}

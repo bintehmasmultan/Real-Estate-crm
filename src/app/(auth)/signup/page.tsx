@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default async function SignupPage() {
   const session = await getSessionUser();
+  if (session?.role === "PENDING") redirect("/pending-approval");
   if (session) redirect("/dashboard");
 
   return (
@@ -17,9 +18,9 @@ export default async function SignupPage() {
           <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600">
             <Building className="h-5 w-5 text-white" />
           </div>
-          <CardTitle className="text-2xl text-white">Create agent account</CardTitle>
+          <CardTitle className="text-2xl text-white">Request an account</CardTitle>
           <CardDescription className="text-slate-400">
-            New signups start with the Agent role (Firebase Auth)
+            New signups stay pending until an admin assigns a role
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default async function LoginPage() {
   const session = await getSessionUser();
+  if (session?.role === "PENDING") redirect("/pending-approval");
   if (session) redirect("/dashboard");
   const adminReady = hasFirebaseAdminCredentials();
 

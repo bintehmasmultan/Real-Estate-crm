@@ -2,6 +2,7 @@
 
 import { Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
@@ -38,6 +39,14 @@ export function Topbar({
         <p className="text-xs text-slate-500">Manage leads, listings, and deals</p>
       </div>
       <div className="flex items-center gap-2">
+        {role === "ADMIN" ? (
+          <Link
+            href="/admin/users"
+            className="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-300"
+          >
+            Team
+          </Link>
+        ) : null}
         {role ? <Badge variant="info">{role}</Badge> : null}
         <Button
           variant="ghost"

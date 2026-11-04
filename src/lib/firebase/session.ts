@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
-import type { Role } from "@/lib/constants";
+import { isCrmRole, normalizeRole, type Role } from "@/lib/constants";
 import type { AppUser } from "@/lib/types";
 
 export const SESSION_COOKIE = "estate_session";
@@ -46,7 +46,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
         id: decoded.uid,
         email: decoded.email || "",
         name: decoded.name || decoded.email || "User",
-        role: "AGENT",
+        role: "PENDING",
         teamId: null,
       };
     }
@@ -55,7 +55,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       id: decoded.uid,
       email: data.email || decoded.email || "",
       name: data.name || decoded.name || "User",
-      role: (data.role as Role) || "AGENT",
+      role: normalizeRole(data.role),
       teamId: data.teamId ?? null,
     };
   } catch {
@@ -65,6 +65,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
 export async function requireSessionUser() {
   const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user || !isCrmRole(user.role)) throw new Error("Unauthorized");
   return user;
 }

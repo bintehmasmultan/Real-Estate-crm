@@ -60,7 +60,7 @@ export default async function LeadsPage({
   const leads = allLeads.filter((l) => leadMatches(l, q, status, source));
   const userMap = new Map(users.map((u) => [u.id, u]));
   const agents = users
-    .filter((u) => ["AGENT", "MANAGER", "ADMIN"].includes(u.role))
+    .filter((u) => u.role === "AGENT" || u.role === "MANAGER" || u.role === "ADMIN")
     .map((u) => ({ id: u.id, name: u.name }));
 
   return (

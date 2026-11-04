@@ -15,11 +15,13 @@ import {
   UsersRound,
   UserRound,
   Building,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/properties", label: "Properties", icon: Building2 },
   { href: "/leads", label: "Leads", icon: Target },

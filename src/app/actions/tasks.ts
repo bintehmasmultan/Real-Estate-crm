@@ -6,6 +6,7 @@ import {
   createActivity as createActivityDoc,
   createTask as createTaskDoc,
   getTask,
+  removeTask,
   updateTask as updateTaskDoc,
 } from "@/lib/db/crm";
 import { requireSessionUser } from "@/lib/firebase/session";
@@ -86,6 +87,18 @@ export async function toggleTaskDone(id: string) {
   });
 
   revalidatePath("/tasks");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteTask(id: string) {
+  const session = await requireSessionUser();
+  if (session.role !== "ADMIN") throw new Error("Unauthorized");
+  const task = await getTask(id);
+  if (!task) throw new Error("Task not found");
+
+  await removeTask(id);
+  revalidatePath("/tasks");
+  revalidatePath("/calendar");
   revalidatePath("/dashboard");
 }
 

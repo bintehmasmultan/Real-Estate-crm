@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { updateDealStage } from "@/app/actions/deals";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { DealDeleteButton } from "@/components/deals/deal-delete-button";
 
 type DealCard = {
   id: string;
@@ -13,6 +14,7 @@ type DealCard = {
   value: number;
   probability: number;
   stageId: string;
+  canDelete?: boolean;
   contact?: { firstName: string; lastName: string } | null;
   property?: { title: string } | null;
   agent?: { name: string } | null;
@@ -103,12 +105,17 @@ export function KanbanBoard({ stages }: { stages: Stage[] }) {
                               : "No contact"}
                             {deal.property ? ` · ${deal.property.title}` : ""}
                           </p>
-                          <div className="mt-2 flex items-center justify-between">
+                          <div className="mt-2 flex items-center justify-between gap-2">
                             <Badge variant="info">{deal.probability}%</Badge>
                             <span className="text-[11px] text-slate-500">
                               {deal.agent?.name || "Unassigned"}
                             </span>
                           </div>
+                          {deal.canDelete ? (
+                            <div className="mt-2 flex justify-end">
+                              <DealDeleteButton id={deal.id} title={deal.title} />
+                            </div>
+                          ) : null}
                         </div>
                       )}
                     </Draggable>

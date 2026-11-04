@@ -174,3 +174,18 @@ export type TeamInvite = {
   updatedAt: string;
   acceptedAt?: string | null;
 };
+
+export type TeamMessage = {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  subject: string;
+  body: string;
+  readAt?: string | null;
+  contactId?: string | null;
+  propertyId?: string | null;
+  dealId?: string | null;
+  leadId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};

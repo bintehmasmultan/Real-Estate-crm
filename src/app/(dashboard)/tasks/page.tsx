@@ -1,6 +1,6 @@
 import { getSessionUser } from "@/lib/firebase/session";
 import { getContact, getDeal, getUsers, listTasks } from "@/lib/db/crm";
-import { getTeamAgentIds } from "@/lib/rbac";
+import { canDeleteRecords, getTeamAgentIds } from "@/lib/rbac";
 import { formatDateTime } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { TaskFormModal } from "@/components/tasks/task-form-modal";
 import { TaskToggle } from "@/components/tasks/task-toggle";
+import { TaskDeleteButton } from "@/components/tasks/task-delete-button";
 
 export default async function TasksPage() {
   const session = await getSessionUser();
@@ -73,7 +74,7 @@ export default async function TasksPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant={
                     task.priority === "URGENT" || task.priority === "HIGH"
@@ -84,6 +85,9 @@ export default async function TasksPage() {
                   {labelize(task.priority)}
                 </Badge>
                 <Badge variant="info">{labelize(task.status)}</Badge>
+                {canDeleteRecords(session) ? (
+                  <TaskDeleteButton id={task.id} title={task.title} />
+                ) : null}
               </div>
             </div>
           ))}

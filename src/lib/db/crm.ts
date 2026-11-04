@@ -19,6 +19,7 @@ import type {
   Task,
   Team,
   TeamInvite,
+  TeamMessage,
 } from "@/lib/types";
 import type { Role } from "@/lib/constants";
 
@@ -42,6 +43,10 @@ export async function getUser(id: string) {
 
 export async function updateUser(id: string, data: Partial<AppUser>) {
   return updateDoc("users", id, data);
+}
+
+export async function removeUser(id: string) {
+  return deleteDoc("users", id);
 }
 
 export async function listTeams(): Promise<Team[]> {
@@ -111,6 +116,50 @@ export async function updateInvite(
 
 export async function removeInvite(id: string) {
   return deleteDoc("invites", id);
+}
+
+export async function listMessages(): Promise<TeamMessage[]> {
+  const rows = await listDocs<TeamMessage>("messages");
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function listMessagesForUser(
+  userId: string,
+  opts?: { folder?: "inbox" | "sent" | "unread"; adminAll?: boolean }
+): Promise<TeamMessage[]> {
+  const rows = await listMessages();
+  const folder = opts?.folder || "inbox";
+
+  if (opts?.adminAll && folder !== "sent" && folder !== "unread") {
+    // Admin "all" view: every message, still sorted newest first
+    return rows;
+  }
+
+  if (folder === "sent") {
+    return rows.filter((m) => m.fromUserId === userId);
+  }
+  if (folder === "unread") {
+    return rows.filter((m) => m.toUserId === userId && !m.readAt);
+  }
+  return rows.filter((m) => m.toUserId === userId);
+}
+
+export async function getMessage(id: string) {
+  return getDoc<TeamMessage>("messages", id);
+}
+
+export async function createMessage(
+  data: Omit<TeamMessage, "id" | "createdAt" | "updatedAt">
+) {
+  return createDoc("messages", data);
+}
+
+export async function markMessageRead(id: string) {
+  return updateDoc("messages", id, { readAt: nowIso() });
+}
+
+export async function removeMessage(id: string) {
+  return deleteDoc("messages", id);
 }
 
 export async function listContacts(agentIds: string[] | null) {
@@ -184,6 +233,10 @@ export async function updateLead(id: string, data: Partial<Lead>) {
   return updateDoc("leads", id, data);
 }
 
+export async function removeLead(id: string) {
+  return deleteDoc("leads", id);
+}
+
 export async function listStages(pipeline: string) {
   const rows = await listDocs<PipelineStage>("pipelineStages");
   return rows
@@ -216,6 +269,10 @@ export async function updateDeal(id: string, data: Partial<Deal>) {
   return updateDoc("deals", id, data);
 }
 
+export async function removeDeal(id: string) {
+  return deleteDoc("deals", id);
+}
+
 export async function listTasks(agentIds: string[] | null) {
   const rows = await listDocs<Task>("tasks");
   return rows
@@ -235,6 +292,10 @@ export async function updateTask(id: string, data: Partial<Task>) {
 
 export async function getTask(id: string) {
   return getDoc<Task>("tasks", id);
+}
+
+export async function removeTask(id: string) {
+  return deleteDoc("tasks", id);
 }
 
 export async function listActivities(opts?: {

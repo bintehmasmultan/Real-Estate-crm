@@ -40,6 +40,12 @@ export function Topbar({
       </div>
       <div className="flex items-center gap-2">
         <Link
+          href="/inbox"
+          className="text-sm font-medium text-slate-600 hover:underline dark:text-slate-300"
+        >
+          Inbox
+        </Link>
+        <Link
           href="/settings/profile"
           className="text-sm font-medium text-slate-600 hover:underline dark:text-slate-300"
         >

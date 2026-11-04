@@ -10,7 +10,11 @@ import {
   listContacts,
   listDeals,
 } from "@/lib/db/crm";
-import { canManageProperty, getTeamAgentIds } from "@/lib/rbac";
+import {
+  canDeleteRecords,
+  canManageProperty,
+  getTeamAgentIds,
+} from "@/lib/rbac";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
@@ -50,6 +54,7 @@ export default async function PropertyDetailPage({
     property.listingAgentId,
     agentIds
   );
+  const canDelete = canDeleteRecords(session);
   const canAssignAgent = session.role === "ADMIN";
   const agents =
     session.role === "ADMIN"
@@ -92,23 +97,23 @@ export default async function PropertyDetailPage({
           <>
             <Link href="/properties" className="rounded-lg border px-3 py-2 text-sm">Back</Link>
             {canManage ? (
-              <>
-                <PropertyFormModal
-                  agents={agents}
-                  contacts={contacts.map((c) => ({
-                    id: c.id,
-                    name: fullName(c.firstName, c.lastName),
-                  }))}
-                  property={property}
-                  triggerLabel="Edit"
-                  canAssignAgent={canAssignAgent}
-                  defaultAgentId={session.id}
-                />
-                <PropertyDeleteButton
-                  propertyId={property.id}
-                  title={property.title}
-                />
-              </>
+              <PropertyFormModal
+                agents={agents}
+                contacts={contacts.map((c) => ({
+                  id: c.id,
+                  name: fullName(c.firstName, c.lastName),
+                }))}
+                property={property}
+                triggerLabel="Edit"
+                canAssignAgent={canAssignAgent}
+                defaultAgentId={session.id}
+              />
+            ) : null}
+            {canDelete ? (
+              <PropertyDeleteButton
+                propertyId={property.id}
+                title={property.title}
+              />
             ) : null}
           </>
         }

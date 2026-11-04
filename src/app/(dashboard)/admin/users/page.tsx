@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
+import { UserDeleteButton } from "@/components/admin/user-delete-button";
 
 export default async function AdminUsersPage() {
   const session = await getSessionUser();
@@ -78,6 +79,9 @@ export default async function AdminUsersPage() {
                         Save team
                       </Button>
                     </form>
+                    {!isSelf ? (
+                      <UserDeleteButton id={user.id} name={user.name} />
+                    ) : null}
                   </div>
                 </div>
               );

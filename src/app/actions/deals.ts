@@ -5,11 +5,14 @@ import { z } from "zod";
 import {
   createActivity,
   createDeal as createDealDoc,
+  getDeal,
   getStage,
+  removeDeal,
   updateDeal as updateDealDoc,
 } from "@/lib/db/crm";
 import { requireSessionUser } from "@/lib/firebase/session";
 import { nowIso } from "@/lib/db/firestore";
+import { canManageAssigned, getTeamAgentIds } from "@/lib/rbac";
 
 const dealSchema = z.object({
   title: z.string().min(1),
@@ -89,7 +92,14 @@ export async function updateDealStage(dealId: string, stageId: string) {
 }
 
 export async function updateDeal(id: string, formData: FormData) {
-  await requireSessionUser();
+  const session = await requireSessionUser();
+  const existing = await getDeal(id);
+  if (!existing) throw new Error("Deal not found");
+  const agentIds = await getTeamAgentIds(session);
+  if (!canManageAssigned(session, existing.agentId, agentIds)) {
+    throw new Error("Unauthorized");
+  }
+
   const data = parseDeal(formData);
 
   await updateDealDoc(id, {
@@ -106,4 +116,15 @@ export async function updateDeal(id: string, formData: FormData) {
   });
 
   revalidatePath("/deals");
+}
+
+export async function deleteDeal(id: string) {
+  const session = await requireSessionUser();
+  if (session.role !== "ADMIN") throw new Error("Unauthorized");
+  const existing = await getDeal(id);
+  if (!existing) throw new Error("Deal not found");
+
+  await removeDeal(id);
+  revalidatePath("/deals");
+  revalidatePath("/dashboard");
 }

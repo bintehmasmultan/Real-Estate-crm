@@ -121,13 +121,9 @@ export async function updateProperty(id: string, formData: FormData) {
 
 export async function deleteProperty(id: string) {
   const session = await requireSessionUser();
+  if (session.role !== "ADMIN") throw new Error("Unauthorized");
   const existing = await getProperty(id);
   if (!existing) throw new Error("Property not found");
-
-  const agentIds = await getTeamAgentIds(session);
-  if (!canManageProperty(session, existing.listingAgentId, agentIds)) {
-    throw new Error("Unauthorized");
-  }
 
   await removeProperty(id);
   revalidatePath("/properties");

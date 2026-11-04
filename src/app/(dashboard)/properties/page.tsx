@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/firebase/session";
 import { getUsers, listContacts, listProperties } from "@/lib/db/crm";
 import {
   canCreateProperty,
-  canManageProperty,
+  canDeleteRecords,
   getTeamAgentIds,
 } from "@/lib/rbac";
 import { formatCurrency, fullName } from "@/lib/utils";
@@ -116,13 +116,7 @@ export default async function PropertiesPage({
         <EmptyState title="No properties found" />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {properties.map((p) => {
-            const canManage = canManageProperty(
-              session,
-              p.listingAgentId,
-              agentIds
-            );
-            return (
+          {properties.map((p) => (
               <div
                 key={p.id}
                 className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -151,14 +145,13 @@ export default async function PropertiesPage({
                       : "Unassigned"}
                   </p>
                 </Link>
-                {canManage ? (
+                {canDeleteRecords(session) ? (
                   <div className="mt-3 flex justify-end border-t border-slate-100 pt-3 dark:border-slate-800">
                     <PropertyDeleteButton propertyId={p.id} title={p.title} />
                   </div>
                 ) : null}
               </div>
-            );
-          })}
+          ))}
         </div>
       )}
     </div>

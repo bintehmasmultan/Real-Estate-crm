@@ -3,6 +3,7 @@ import {
   deleteDoc,
   getDoc,
   listDocs,
+  newId,
   nowIso,
   updateDoc,
 } from "@/lib/db/firestore";
@@ -12,6 +13,7 @@ import type {
   Contact,
   ContactProperty,
   Deal,
+  InboxFolder,
   Lead,
   Note,
   PipelineStage,
@@ -22,6 +24,11 @@ import type {
   TeamMessage,
 } from "@/lib/types";
 import type { Role } from "@/lib/constants";
+import {
+  countUnread,
+  filterMailbox,
+  normalizeMessage,
+} from "@/lib/inbox";
 
 function scopeBy(
   agentIds: string[] | null,
@@ -120,42 +127,141 @@ export async function removeInvite(id: string) {
 
 export async function listMessages(): Promise<TeamMessage[]> {
   const rows = await listDocs<TeamMessage>("messages");
-  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return rows
+    .map(normalizeMessage)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function listMessagesForUser(
   userId: string,
-  opts?: { folder?: "inbox" | "sent" | "unread"; adminAll?: boolean }
+  opts?: { folder?: InboxFolder; isAdmin?: boolean }
 ): Promise<TeamMessage[]> {
   const rows = await listMessages();
-  const folder = opts?.folder || "inbox";
+  return filterMailbox(rows, userId, opts?.folder || "inbox", {
+    isAdmin: opts?.isAdmin,
+  });
+}
 
-  if (opts?.adminAll && folder !== "sent" && folder !== "unread") {
-    // Admin "all" view: every message, still sorted newest first
-    return rows;
-  }
-
-  if (folder === "sent") {
-    return rows.filter((m) => m.fromUserId === userId);
-  }
-  if (folder === "unread") {
-    return rows.filter((m) => m.toUserId === userId && !m.readAt);
-  }
-  return rows.filter((m) => m.toUserId === userId);
+export async function countUnreadMessages(userId: string) {
+  const rows = await listMessages();
+  return countUnread(rows, userId);
 }
 
 export async function getMessage(id: string) {
-  return getDoc<TeamMessage>("messages", id);
+  const row = await getDoc<TeamMessage>("messages", id);
+  return row ? normalizeMessage(row) : null;
+}
+
+export async function listThreadMessages(threadId: string) {
+  const rows = await listMessages();
+  return rows
+    .filter((m) => m.threadId === threadId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 export async function createMessage(
-  data: Omit<TeamMessage, "id" | "createdAt" | "updatedAt">
+  data: Omit<TeamMessage, "id" | "createdAt" | "updatedAt" | "threadId"> & {
+    threadId?: string;
+    id?: string;
+  }
 ) {
-  return createDoc("messages", data);
+  const id = data.id || newId();
+  const toUserIds = Array.from(
+    new Set((data.toUserIds?.length ? data.toUserIds : [data.toUserId]).filter(Boolean))
+  );
+  const payload: Omit<TeamMessage, "id" | "createdAt" | "updatedAt"> = {
+    fromUserId: data.fromUserId,
+    toUserId: data.toUserId || toUserIds[0] || "",
+    toUserIds,
+    subject: data.subject,
+    body: data.body,
+    threadId: data.threadId || id,
+    parentMessageId: data.parentMessageId ?? null,
+    readBy: data.readBy ?? [],
+    starredBy: data.starredBy ?? [],
+    archivedBy: data.archivedBy ?? [],
+    deletedBy: data.deletedBy ?? [],
+    readAt: data.readAt ?? null,
+    contactId: data.contactId ?? null,
+    propertyId: data.propertyId ?? null,
+    dealId: data.dealId ?? null,
+    leadId: data.leadId ?? null,
+  };
+  await createDoc("messages", payload, id);
+  return id;
 }
 
-export async function markMessageRead(id: string) {
-  return updateDoc("messages", id, { readAt: nowIso() });
+export async function markMessageRead(id: string, userId: string) {
+  const message = await getMessage(id);
+  if (!message) return;
+  if (message.readBy.includes(userId)) return;
+  await updateDoc("messages", id, {
+    readBy: [...message.readBy, userId],
+    readAt: nowIso(),
+  });
+}
+
+export async function markMessageUnread(id: string, userId: string) {
+  const message = await getMessage(id);
+  if (!message) return;
+  await updateDoc("messages", id, {
+    readBy: message.readBy.filter((uid) => uid !== userId),
+    readAt: null,
+  });
+}
+
+export async function toggleMessageStar(id: string, userId: string) {
+  const message = await getMessage(id);
+  if (!message) return false;
+  const starred = message.starredBy.includes(userId);
+  await updateDoc("messages", id, {
+    starredBy: starred
+      ? message.starredBy.filter((uid) => uid !== userId)
+      : [...message.starredBy, userId],
+  });
+  return !starred;
+}
+
+export async function setMessageArchived(
+  id: string,
+  userId: string,
+  archived: boolean
+) {
+  const message = await getMessage(id);
+  if (!message) return;
+  const has = message.archivedBy.includes(userId);
+  if (archived && !has) {
+    await updateDoc("messages", id, {
+      archivedBy: [...message.archivedBy, userId],
+      deletedBy: message.deletedBy.filter((uid) => uid !== userId),
+    });
+  }
+  if (!archived && has) {
+    await updateDoc("messages", id, {
+      archivedBy: message.archivedBy.filter((uid) => uid !== userId),
+    });
+  }
+}
+
+export async function setMessageDeleted(
+  id: string,
+  userId: string,
+  deleted: boolean
+) {
+  const message = await getMessage(id);
+  if (!message) return;
+  const has = message.deletedBy.includes(userId);
+  if (deleted && !has) {
+    await updateDoc("messages", id, {
+      deletedBy: [...message.deletedBy, userId],
+      archivedBy: message.archivedBy.filter((uid) => uid !== userId),
+    });
+  }
+  if (!deleted && has) {
+    await updateDoc("messages", id, {
+      deletedBy: message.deletedBy.filter((uid) => uid !== userId),
+    });
+  }
 }
 
 export async function removeMessage(id: string) {

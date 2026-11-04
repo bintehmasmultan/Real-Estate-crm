@@ -12,9 +12,11 @@ import { Badge } from "@/components/ui/badge";
 export function Topbar({
   name,
   role,
+  unreadCount = 0,
 }: {
   name?: string | null;
   role?: string;
+  unreadCount?: number;
 }) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
@@ -41,9 +43,14 @@ export function Topbar({
       <div className="flex items-center gap-2">
         <Link
           href="/inbox"
-          className="text-sm font-medium text-slate-600 hover:underline dark:text-slate-300"
+          className="relative text-sm font-medium text-slate-600 hover:underline dark:text-slate-300"
         >
           Inbox
+          {unreadCount > 0 ? (
+            <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[10px] font-semibold text-white">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          ) : null}
         </Link>
         <Link
           href="/settings/profile"

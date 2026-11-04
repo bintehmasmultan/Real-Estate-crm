@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteMessage } from "@/app/actions/messages";
+import { trashInboxMessage } from "@/app/actions/messages";
 import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 
 export function MessageDeleteButton({
@@ -12,10 +12,11 @@ export function MessageDeleteButton({
 }) {
   return (
     <DeleteRecordButton
-      confirmLabel={`Delete message "${subject}"?`}
-      successMessage="Message deleted"
-      errorMessage="Could not delete message"
-      onDelete={() => deleteMessage(id)}
+      label="Trash"
+      confirmLabel={`Move "${subject}" to trash?`}
+      successMessage="Moved to trash"
+      errorMessage="Could not trash message"
+      onDelete={() => trashInboxMessage(id)}
     />
   );
 }

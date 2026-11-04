@@ -32,7 +32,13 @@ const nav = [
   { href: "/settings/profile", label: "My profile", icon: UserRound },
 ];
 
-export function Sidebar({ showAdmin = false }: { showAdmin?: boolean }) {
+export function Sidebar({
+  showAdmin = false,
+  unreadCount = 0,
+}: {
+  showAdmin?: boolean;
+  unreadCount?: number;
+}) {
   const pathname = usePathname();
   const items = showAdmin
     ? [
@@ -58,6 +64,7 @@ export function Sidebar({ showAdmin = false }: { showAdmin?: boolean }) {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
+          const showBadge = item.href === "/inbox" && unreadCount > 0;
           return (
             <Link
               key={item.href}
@@ -70,7 +77,19 @@ export function Sidebar({ showAdmin = false }: { showAdmin?: boolean }) {
               )}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {showBadge ? (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[10px] font-semibold",
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-emerald-600 text-white"
+                  )}
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              ) : null}
             </Link>
           );
         })}

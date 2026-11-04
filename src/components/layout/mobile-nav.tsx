@@ -35,7 +35,7 @@ const moreItems = [
   { href: "/settings/profile", label: "Profile", icon: UserRound },
 ];
 
-export function MobileNav() {
+export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -92,16 +92,24 @@ export function MobileNav() {
         {primaryItems.map((item) => {
           const active = pathname.startsWith(item.href);
           const Icon = item.icon;
+          const showBadge = item.href === "/inbox" && unreadCount > 0;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px]",
+                "relative flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px]",
                 active ? "text-emerald-600" : "text-slate-500"
               )}
             >
-              <Icon className="h-4 w-4" />
+              <span className="relative">
+                <Icon className="h-4 w-4" />
+                {showBadge ? (
+                  <span className="absolute -right-2 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-emerald-600 px-0.5 text-[8px] font-semibold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                ) : null}
+              </span>
               {item.label}
             </Link>
           );

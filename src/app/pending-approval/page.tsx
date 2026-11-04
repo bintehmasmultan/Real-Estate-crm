@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default async function PendingApprovalPage() {
   const session = await getSessionUser();
   if (!session) redirect("/login");
+  if (!session.emailVerified) redirect("/verify-email");
   if (session.role !== "PENDING") redirect("/dashboard");
 
   return (

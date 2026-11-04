@@ -39,12 +39,18 @@ export function Topbar({
         <p className="text-xs text-slate-500">Manage leads, listings, and deals</p>
       </div>
       <div className="flex items-center gap-2">
+        <Link
+          href="/settings/profile"
+          className="text-sm font-medium text-slate-600 hover:underline dark:text-slate-300"
+        >
+          Profile
+        </Link>
         {role === "ADMIN" ? (
           <Link
-            href="/admin/users"
+            href="/admin/teams"
             className="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-300"
           >
-            Team
+            Teams
           </Link>
         ) : null}
         {role ? <Badge variant="info">{role}</Badge> : null}

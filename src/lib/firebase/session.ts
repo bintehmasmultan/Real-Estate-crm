@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { isCrmRole, normalizeRole, type Role } from "@/lib/constants";
+import { isEmailVerificationExempt } from "@/lib/auth/email-verification";
 import type { AppUser } from "@/lib/types";
 
 export const SESSION_COOKIE = "estate_session";
@@ -11,6 +12,7 @@ export type SessionUser = {
   name: string;
   role: Role;
   teamId?: string | null;
+  emailVerified: boolean;
 };
 
 export async function createSessionCookie(idToken: string) {
@@ -40,23 +42,29 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   try {
     const decoded = await getAdminAuth().verifySessionCookie(session, true);
+    const email = decoded.email || "";
+    const emailVerified =
+      Boolean(decoded.email_verified) || isEmailVerificationExempt(email);
+
     const snap = await getAdminDb().collection("users").doc(decoded.uid).get();
     if (!snap.exists) {
       return {
         id: decoded.uid,
-        email: decoded.email || "",
-        name: decoded.name || decoded.email || "User",
+        email,
+        name: decoded.name || email || "User",
         role: "PENDING",
         teamId: null,
+        emailVerified,
       };
     }
     const data = snap.data() as AppUser;
     return {
       id: decoded.uid,
-      email: data.email || decoded.email || "",
+      email: data.email || email,
       name: data.name || decoded.name || "User",
       role: normalizeRole(data.role),
       teamId: data.teamId ?? null,
+      emailVerified,
     };
   } catch {
     return null;
@@ -65,6 +73,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
 export async function requireSessionUser() {
   const user = await getSessionUser();
-  if (!user || !isCrmRole(user.role)) throw new Error("Unauthorized");
+  if (!user || !isCrmRole(user.role) || !user.emailVerified) {
+    throw new Error("Unauthorized");
+  }
   return user;
 }

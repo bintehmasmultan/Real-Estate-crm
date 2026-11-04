@@ -12,6 +12,8 @@ import {
   CalendarDays,
   BarChart3,
   ShieldCheck,
+  UsersRound,
+  UserRound,
   Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,10 +27,18 @@ const nav = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/settings/profile", label: "My profile", icon: UserRound },
 ];
 
 export function Sidebar({ showAdmin = false }: { showAdmin?: boolean }) {
   const pathname = usePathname();
+  const items = showAdmin
+    ? [
+        ...nav,
+        { href: "/admin/users", label: "Team access", icon: ShieldCheck },
+        { href: "/admin/teams", label: "Teams", icon: UsersRound },
+      ]
+    : nav;
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
@@ -42,10 +52,7 @@ export function Sidebar({ showAdmin = false }: { showAdmin?: boolean }) {
         </div>
       </div>
       <nav className="flex-1 space-y-1 p-3">
-        {(showAdmin
-          ? [...nav, { href: "/admin/users", label: "Team access", icon: ShieldCheck }]
-          : nav
-        ).map((item) => {
+        {items.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;

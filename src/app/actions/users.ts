@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUsers, updateUser } from "@/lib/db/crm";
+import { getUser, getUsers, updateUser } from "@/lib/db/crm";
 import { requireSessionUser } from "@/lib/firebase/session";
 import { normalizeRole, type Role } from "@/lib/constants";
 
@@ -30,4 +30,31 @@ export async function updateUserRole(formData: FormData) {
 
   await updateUser(userId, { role: role satisfies Role });
   revalidatePath("/admin/users");
+}
+
+export async function updateUserTeam(formData: FormData) {
+  const session = await requireSessionUser();
+  if (session.role !== "ADMIN") throw new Error("Unauthorized");
+
+  const userId = String(formData.get("userId") || "");
+  const teamId = String(formData.get("teamId") || "") || null;
+  if (!userId) throw new Error("Missing user");
+
+  await updateUser(userId, { teamId });
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/teams");
+}
+
+export async function updateOwnProfile(formData: FormData) {
+  const session = await requireSessionUser();
+  const name = String(formData.get("name") || "").trim();
+  const phone = String(formData.get("phone") || "").trim() || null;
+  if (!name) throw new Error("Name is required");
+
+  const current = await getUser(session.id);
+  if (!current) throw new Error("User not found");
+
+  await updateUser(session.id, { name, phone });
+  revalidatePath("/settings/profile");
+  revalidatePath("/dashboard");
 }

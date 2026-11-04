@@ -17,7 +17,10 @@ import type {
   PipelineStage,
   Property,
   Task,
+  Team,
+  TeamInvite,
 } from "@/lib/types";
+import type { Role } from "@/lib/constants";
 
 function scopeBy(
   agentIds: string[] | null,
@@ -39,6 +42,75 @@ export async function getUser(id: string) {
 
 export async function updateUser(id: string, data: Partial<AppUser>) {
   return updateDoc("users", id, data);
+}
+
+export async function listTeams(): Promise<Team[]> {
+  const rows = await listDocs<Team>("teams");
+  return rows.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function getTeam(id: string) {
+  return getDoc<Team>("teams", id);
+}
+
+export async function createTeam(
+  data: Omit<Team, "id" | "createdAt" | "updatedAt">
+) {
+  return createDoc("teams", data);
+}
+
+export async function updateTeam(id: string, data: Partial<Team>) {
+  return updateDoc("teams", id, data);
+}
+
+export async function removeTeam(id: string) {
+  return deleteDoc("teams", id);
+}
+
+export async function listInvites(): Promise<TeamInvite[]> {
+  const rows = await listDocs<TeamInvite>("invites");
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getInviteByToken(token: string) {
+  const rows = await listDocs<TeamInvite>("invites");
+  return rows.find((i) => i.token === token) || null;
+}
+
+export async function getPendingInviteByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const rows = await listDocs<TeamInvite>("invites");
+  return (
+    rows.find(
+      (i) => i.email === normalized && i.status === "PENDING"
+    ) || null
+  );
+}
+
+export async function createInvite(data: {
+  email: string;
+  teamId: string;
+  role: Role;
+  token: string;
+  invitedById: string;
+}) {
+  return createDoc("invites", {
+    ...data,
+    email: data.email.trim().toLowerCase(),
+    status: "PENDING" as const,
+    acceptedAt: null,
+  });
+}
+
+export async function updateInvite(
+  id: string,
+  data: Partial<TeamInvite>
+) {
+  return updateDoc("invites", id, data);
+}
+
+export async function removeInvite(id: string) {
+  return deleteDoc("invites", id);
 }
 
 export async function listContacts(agentIds: string[] | null) {

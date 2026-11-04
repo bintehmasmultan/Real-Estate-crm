@@ -161,3 +161,16 @@ export type Team = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TeamInvite = {
+  id: string;
+  email: string;
+  teamId: string;
+  role: Role;
+  token: string;
+  status: "PENDING" | "ACCEPTED" | "REVOKED";
+  invitedById: string;
+  createdAt: string;
+  updatedAt: string;
+  acceptedAt?: string | null;
+};

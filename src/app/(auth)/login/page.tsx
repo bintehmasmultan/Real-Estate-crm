@@ -15,7 +15,7 @@ export default async function LoginPage() {
   const adminReady = hasFirebaseAdminCredentials();
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-950 px-4 py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.2),_transparent_40%)]" />
       <Card className="relative z-10 w-full max-w-md border-slate-800 bg-slate-900/90 text-slate-50 shadow-2xl">
         <CardHeader>

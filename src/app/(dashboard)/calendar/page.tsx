@@ -178,19 +178,19 @@ export default async function CalendarPage({
         title="Calendar"
         description="Tasks, viewings, and meetings for the month"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <Link
               href={`/calendar?month=${prev}`}
-              className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
+              className="rounded-xl border px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
             >
               Previous
             </Link>
-            <span className="min-w-32 text-center text-sm font-medium">
+            <span className="min-w-0 flex-1 text-center text-sm font-medium sm:min-w-32 sm:flex-none">
               {format(monthStart, "MMMM yyyy")}
             </span>
             <Link
               href={`/calendar?month=${next}`}
-              className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
+              className="rounded-xl border px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
             >
               Next
             </Link>

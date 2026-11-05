@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,17 +23,39 @@ function isStandalone() {
   );
 }
 
+const DISMISS_KEY = "estatecrm-install-dismissed";
+const DISMISS_EVENT = "estatecrm-install-dismiss";
+
+function subscribeDismiss(onStoreChange: () => void) {
+  window.addEventListener(DISMISS_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    window.removeEventListener(DISMISS_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function readDismissed() {
+  return localStorage.getItem(DISMISS_KEY) === "1";
+}
+
+function subscribeIosTip(onStoreChange: () => void) {
+  window.addEventListener(DISMISS_EVENT, onStoreChange);
+  return () => window.removeEventListener(DISMISS_EVENT, onStoreChange);
+}
+
+function readIosTip() {
+  return isIos() && !isStandalone();
+}
+
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
     null
   );
-  const [showIosTip, setShowIosTip] = useState(false);
-  const [dismissed, setDismissed] = useState(true);
+  const dismissed = useSyncExternalStore(subscribeDismiss, readDismissed, () => true);
+  const showIosTip = useSyncExternalStore(subscribeIosTip, readIosTip, () => false);
 
   useEffect(() => {
-    const key = "estatecrm-install-dismissed";
-    setDismissed(localStorage.getItem(key) === "1");
-
     if (isStandalone()) return;
 
     const onBip = (e: Event) => {
@@ -41,19 +63,13 @@ export function InstallPrompt() {
       setDeferred(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", onBip);
-
-    if (isIos()) {
-      setShowIosTip(true);
-    }
-
     return () => window.removeEventListener("beforeinstallprompt", onBip);
   }, []);
 
   function dismiss() {
-    localStorage.setItem("estatecrm-install-dismissed", "1");
-    setDismissed(true);
+    localStorage.setItem(DISMISS_KEY, "1");
+    window.dispatchEvent(new Event(DISMISS_EVENT));
     setDeferred(null);
-    setShowIosTip(false);
   }
 
   async function install() {

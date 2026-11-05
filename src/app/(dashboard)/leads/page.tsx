@@ -72,7 +72,7 @@ export default async function LeadsPage({
         actions={<LeadFormModal agents={agents} />}
       />
 
-      <form className="mb-4 grid gap-2 md:grid-cols-4">
+      <form className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Input name="q" placeholder="Search leads..." defaultValue={q} />
         <Select name="status" defaultValue={status}>
           <option value="">All statuses</option>
@@ -94,8 +94,37 @@ export default async function LeadsPage({
       {leads.length === 0 ? (
         <EmptyState title="No leads found" description="Share /lead for public capture." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-full text-sm">
+        <>
+        <ul className="grid gap-3 md:hidden">
+          {leads.map((lead) => (
+            <li
+              key={lead.id}
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">{fullName(lead.firstName, lead.lastName)}</p>
+                  <p className="truncate text-xs text-slate-500">{lead.email || lead.phone || "No contact details"}</p>
+                </div>
+                <Badge>{labelize(lead.status)}</Badge>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                {labelize(lead.source)} · score {lead.score}
+                {lead.budget ? ` · ${formatCurrency(lead.budget)}` : ""}
+              </p>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <p className="truncate text-xs text-slate-500">
+                  {lead.assignedAgentId
+                    ? userMap.get(lead.assignedAgentId)?.name || "Unassigned"
+                    : "Unassigned"}
+                </p>
+                <LeadActions leadId={lead.id} converted={lead.status === "CONVERTED"} />
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:block">
+          <table className="min-w-[840px] w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-950">
               <tr>
                 <th className="px-4 py-3">Lead</th>
@@ -139,6 +168,7 @@ export default async function LeadsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

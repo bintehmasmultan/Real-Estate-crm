@@ -82,7 +82,7 @@ export default async function ContactsPage({
         actions={<ContactFormModal agents={agents} />}
       />
 
-      <form className="mb-4 grid gap-2 md:grid-cols-4">
+      <form className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Input name="q" placeholder="Search contacts..." defaultValue={q} />
         <Select name="type" defaultValue={type}>
           <option value="">All types</option>
@@ -108,8 +108,33 @@ export default async function ContactsPage({
       {contacts.length === 0 ? (
         <EmptyState title="No contacts found" description="Try adjusting filters or add a contact." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-full text-sm">
+        <>
+        <ul className="grid gap-3 md:hidden">
+          {contacts.map((c) => (
+            <li
+              key={c.id}
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <Link
+                href={`/contacts/${c.id}`}
+                className="font-semibold text-emerald-700 dark:text-emerald-400"
+              >
+                {fullName(c.firstName, c.lastName)}
+              </Link>
+              <p className="mt-1 truncate text-xs text-slate-500">{c.email || c.phone || "No contact details"}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge variant="secondary">{labelize(c.type)}</Badge>
+                <Badge>{labelize(c.status)}</Badge>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                {c.city || "No city"} ·{" "}
+                {c.assignedAgentId ? userMap.get(c.assignedAgentId)?.name || "Unassigned" : "Unassigned"}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:block">
+          <table className="min-w-[720px] w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950">
               <tr>
                 <th className="px-4 py-3">Name</th>
@@ -162,9 +187,10 @@ export default async function ContactsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
-      <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+      <div className="mt-4 flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
         <span>
           Page {page} of {totalPages} · {total} contacts
         </span>

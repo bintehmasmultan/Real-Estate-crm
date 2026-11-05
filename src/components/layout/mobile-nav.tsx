@@ -7,10 +7,10 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  Target,
   KanbanSquare,
   Inbox,
   MoreHorizontal,
+  Target,
   CheckSquare,
   CalendarDays,
   BarChart3,
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const primaryItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/contacts", label: "People", icon: Users },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/properties", label: "Listings", icon: Building2 },
   { href: "/deals", label: "Deals", icon: KanbanSquare },
@@ -47,7 +47,7 @@ export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
         <div className="fixed inset-0 z-40 lg:hidden">
           <button
             type="button"
-            aria-label="Close menu"
+            aria-label="Close more menu"
             className="absolute inset-0 bg-slate-950/40"
             onClick={() => setMoreOpen(false)}
           />
@@ -56,7 +56,8 @@ export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
               <p className="text-sm font-semibold">More</p>
               <button
                 type="button"
-                className="touch-target inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900"
+                aria-label="Close more menu"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900"
                 onClick={() => setMoreOpen(false)}
               >
                 <X className="h-5 w-5" />
@@ -88,9 +89,9 @@ export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
         </div>
       ) : null}
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white px-1 pt-1 dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200/80 bg-white/90 px-1 pt-1 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))]">
         {primaryItems.map((item) => {
-          const active = pathname.startsWith(item.href);
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           const showBadge = item.href === "/inbox" && unreadCount > 0;
           return (
@@ -98,7 +99,7 @@ export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px]",
+                "relative flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px] font-medium",
                 active ? "text-emerald-600" : "text-slate-500"
               )}
             >
@@ -118,7 +119,7 @@ export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
           type="button"
           onClick={() => setMoreOpen(true)}
           className={cn(
-            "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px]",
+            "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px] font-medium",
             moreActive || moreOpen ? "text-emerald-600" : "text-slate-500"
           )}
         >

@@ -17,6 +17,7 @@ import {
 } from "@/lib/db/crm";
 import { requireSessionUser } from "@/lib/firebase/session";
 import { CRM_ROLES, normalizeRole, type Role } from "@/lib/constants";
+import type { AppUser, Team } from "@/lib/types";
 import {
   appBaseUrl,
   gmailComposeUrl,
@@ -30,31 +31,66 @@ async function requireAdmin() {
   return session;
 }
 
+function cleanName(value: FormDataEntryValue | null) {
+  const name = String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (name.length < 2 || name.length > 80) {
+    throw new Error("Team name must be 2–80 characters");
+  }
+  return name;
+}
+
+function assertManager(users: AppUser[], managerId: string | null) {
+  if (!managerId) return;
+  const manager = users.find((user) => user.id === managerId);
+  if (!manager || manager.role === "PENDING") {
+    throw new Error("Choose a manager with CRM access");
+  }
+}
+
+function assertUniqueName(teams: Team[], name: string, exceptId?: string) {
+  const taken = teams.some(
+    (team) =>
+      team.id !== exceptId && team.name.toLowerCase() === name.toLowerCase()
+  );
+  if (taken) throw new Error("A team with that name already exists");
+}
+
+function revalidateTeamViews() {
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/teams");
+  revalidatePath("/admin/users");
+}
+
 export async function createTeamAction(formData: FormData) {
   await requireAdmin();
-  const name = String(formData.get("name") || "").trim();
+  const name = cleanName(formData.get("name"));
   const managerId = String(formData.get("managerId") || "") || null;
-  if (!name) throw new Error("Team name is required");
+  const [users, teams] = await Promise.all([getUsers(), listTeams()]);
+  assertManager(users, managerId);
+  assertUniqueName(teams, name);
 
   const id = await createTeam({ name, managerId });
   if (managerId) {
     await updateUser(managerId, { teamId: id });
   }
 
-  revalidatePath("/admin/teams");
-  revalidatePath("/admin/users");
+  revalidateTeamViews();
 }
 
 export async function updateTeamAction(formData: FormData) {
   await requireAdmin();
   const teamId = String(formData.get("teamId") || "");
-  const name = String(formData.get("name") || "").trim();
+  const name = cleanName(formData.get("name"));
   const managerId = String(formData.get("managerId") || "") || null;
-  if (!teamId || !name) throw new Error("Missing team fields");
+  if (!teamId) throw new Error("Missing team fields");
 
-  const teams = await listTeams();
+  const [users, teams] = await Promise.all([getUsers(), listTeams()]);
   const existing = teams.find((t) => t.id === teamId);
   if (!existing) throw new Error("Team not found");
+  assertManager(users, managerId);
+  assertUniqueName(teams, name, teamId);
 
   await updateTeam(teamId, { name, managerId });
 
@@ -62,8 +98,22 @@ export async function updateTeamAction(formData: FormData) {
     await updateUser(managerId, { teamId });
   }
 
-  revalidatePath("/admin/teams");
-  revalidatePath("/admin/users");
+  revalidateTeamViews();
+}
+
+export async function assignUserTeam(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("userId") || "");
+  const teamId = String(formData.get("teamId") || "");
+  if (!userId) throw new Error("Choose a person");
+  const [users, teams] = await Promise.all([getUsers(), listTeams()]);
+  if (!users.some((user) => user.id === userId)) throw new Error("User not found");
+  if (teamId && !teams.some((team) => team.id === teamId)) {
+    throw new Error("Team not found");
+  }
+
+  await updateUser(userId, { teamId: teamId || null });
+  revalidateTeamViews();
 }
 
 export async function deleteTeamAction(formData: FormData) {

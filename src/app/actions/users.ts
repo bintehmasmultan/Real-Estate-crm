@@ -30,7 +30,7 @@ export async function updateUserRole(formData: FormData) {
   }
 
   await updateUser(userId, { role: role satisfies Role });
-  revalidatePath("/admin/users");
+  revalidatePath("/", "layout");
 }
 
 export async function updateUserTeam(formData: FormData) {
@@ -48,14 +48,21 @@ export async function updateUserTeam(formData: FormData) {
 
 export async function updateOwnProfile(formData: FormData) {
   const session = await requireSessionUser();
-  const name = String(formData.get("name") || "").trim();
-  const phone = String(formData.get("phone") || "").trim() || null;
-  if (!name) throw new Error("Name is required");
+  const name = String(formData.get("name") || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  const phone = String(formData.get("phone") || "").trim();
+
+  if (name.length < 2 || name.length > 80) {
+    throw new Error("Name must be 2–80 characters");
+  }
+  if (phone.length > 40) throw new Error("Phone is too long");
 
   const current = await getUser(session.id);
   if (!current) throw new Error("User not found");
 
-  await updateUser(session.id, { name, phone });
+  await updateUser(session.id, { name, phone: phone || null });
+  revalidatePath("/", "layout");
   revalidatePath("/settings/profile");
   revalidatePath("/dashboard");
 }

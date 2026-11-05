@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendMessage } from "@/app/actions/messages";
@@ -55,21 +55,21 @@ export function ComposeMessageModal({
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = onOpenChange ?? setUncontrolledOpen;
   const [pending, startTransition] = useTransition();
+  const recipientKey = (defaults?.toUserIds || []).join("\0");
+  const selectionToken = open ? `open:${recipientKey}` : "closed";
+  const [seenToken, setSeenToken] = useState(selectionToken);
   const [selected, setSelected] = useState<string[]>(defaults?.toUserIds || []);
-
-  useEffect(() => {
-    if (open) {
-      setSelected(defaults?.toUserIds || []);
-    }
-  }, [open, defaults?.toUserIds]);
+  if (seenToken !== selectionToken) {
+    setSeenToken(selectionToken);
+    if (open) setSelected(defaults?.toUserIds || []);
+  }
 
   const title = defaults?.parentMessageId ? "Reply" : "New message";
-  const defaultSubject = useMemo(() => {
-    if (!defaults?.subject) return "";
-    return defaults.parentMessageId
+  const defaultSubject = !defaults?.subject
+    ? ""
+    : defaults.parentMessageId
       ? replySubject(defaults.subject)
       : defaults.subject;
-  }, [defaults?.parentMessageId, defaults?.subject]);
 
   function toggleRecipient(id: string) {
     setSelected((prev) =>

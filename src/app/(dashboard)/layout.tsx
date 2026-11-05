@@ -7,10 +7,7 @@ import {
 } from "@/lib/db/crm";
 import { isUnreadFor, previewBody } from "@/lib/inbox";
 import { formatDateTime } from "@/lib/utils";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
-import { MobileNav } from "@/components/layout/mobile-nav";
-import { InboxPopup } from "@/components/inbox/inbox-popup";
+import { AppShell } from "@/components/layout/app-shell";
 
 export default async function DashboardLayout({
   children,
@@ -54,16 +51,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Sidebar showAdmin={session.role === "ADMIN"} unreadCount={unreadCount} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar name={session.name} role={session.role} unreadCount={unreadCount} />
-        <main className="flex-1 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-6 lg:pb-6">
-          {children}
-        </main>
-        <MobileNav unreadCount={unreadCount} />
-        <InboxPopup unreadCount={unreadCount} items={popupItems} />
-      </div>
-    </div>
+    <AppShell
+      name={session.name}
+      role={session.role}
+      showAdmin={session.role === "ADMIN"}
+      unreadCount={unreadCount}
+      inboxItems={popupItems}
+    >
+      {children}
+    </AppShell>
   );
 }

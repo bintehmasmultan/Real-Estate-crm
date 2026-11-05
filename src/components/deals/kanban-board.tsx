@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { updateDealStage } from "@/app/actions/deals";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { DealDeleteButton } from "@/components/deals/deal-delete-button";
+import { AiAssistPanel } from "@/components/ai/ai-assist-panel";
 
 type DealCard = {
   id: string;
@@ -13,6 +15,8 @@ type DealCard = {
   value: number;
   probability: number;
   stageId: string;
+  canDelete?: boolean;
+  contactId?: string | null;
   contact?: { firstName: string; lastName: string } | null;
   property?: { title: string } | null;
   agent?: { name: string } | null;
@@ -103,11 +107,22 @@ export function KanbanBoard({ stages }: { stages: Stage[] }) {
                               : "No contact"}
                             {deal.property ? ` · ${deal.property.title}` : ""}
                           </p>
-                          <div className="mt-2 flex items-center justify-between">
+                          <div className="mt-2 flex items-center justify-between gap-2">
                             <Badge variant="info">{deal.probability}%</Badge>
                             <span className="text-[11px] text-slate-500">
                               {deal.agent?.name || "Unassigned"}
                             </span>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                            <AiAssistPanel
+                              dealId={deal.id}
+                              contactId={deal.contactId ?? undefined}
+                              triggerLabel="AI"
+                              triggerSize="sm"
+                            />
+                            {deal.canDelete ? (
+                              <DealDeleteButton id={deal.id} title={deal.title} />
+                            ) : null}
                           </div>
                         </div>
                       )}

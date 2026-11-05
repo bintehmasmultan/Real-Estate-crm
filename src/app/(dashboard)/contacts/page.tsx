@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/firebase/session";
 import { getUsers, listContacts } from "@/lib/db/crm";
-import { getTeamAgentIds } from "@/lib/rbac";
+import { canDeleteRecords, getTeamAgentIds } from "@/lib/rbac";
 import { fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ContactFormModal } from "@/components/contacts/contact-form-modal";
+import { ContactDeleteButton } from "@/components/contacts/contact-delete-button";
 
 function contactMatchesSearch(
   c: {
@@ -142,6 +143,7 @@ export default async function ContactsPage({
                 <th className="px-4 py-3">City</th>
                 <th className="px-4 py-3">Agent</th>
                 <th className="px-4 py-3">Tags</th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -171,6 +173,14 @@ export default async function ContactsPage({
                         </Badge>
                       ))}
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {canDeleteRecords(session) ? (
+                      <ContactDeleteButton
+                        id={c.id}
+                        name={fullName(c.firstName, c.lastName)}
+                      />
+                    ) : null}
                   </td>
                 </tr>
               ))}

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Building } from "lucide-react";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default async function LoginPage() {
   const session = await getSessionUser();
+  if (session && !session.emailVerified) redirect("/verify-email");
   if (session?.role === "PENDING") redirect("/pending-approval");
   if (session) redirect("/dashboard");
   const adminReady = hasFirebaseAdminCredentials();
@@ -22,7 +24,7 @@ export default async function LoginPage() {
           </div>
           <CardTitle className="text-2xl text-white">Sign in to EstateCRM</CardTitle>
           <CardDescription className="text-slate-400">
-            Firebase Auth · use a seeded demo account or create one
+            Team accounts require email verification (or Google sign-in)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -41,7 +43,9 @@ export default async function LoginPage() {
               , then run <code>npm run db:seed</code> and restart the server.
             </div>
           ) : null}
-          <LoginForm />
+          <Suspense fallback={<p className="text-sm text-slate-400">Loading…</p>}>
+            <LoginForm />
+          </Suspense>
           <p className="mt-4 text-center text-sm text-slate-400">
             No account?{" "}
             <Link href="/signup" className="text-emerald-400 hover:underline">
@@ -49,7 +53,7 @@ export default async function LoginPage() {
             </Link>
           </p>
           <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-400">
-            Demo: admin@crm.local / manager@crm.local / agent@crm.local — password123
+            Bootstrap admin: admin@crm.local / password123
           </div>
         </CardContent>
       </Card>

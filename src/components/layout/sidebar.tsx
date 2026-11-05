@@ -12,12 +12,16 @@ import {
   CalendarDays,
   BarChart3,
   ShieldCheck,
+  UsersRound,
+  UserRound,
   Building,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const workspace = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/properties", label: "Properties", icon: Building2 },
   { href: "/leads", label: "Leads", icon: Target },
@@ -25,18 +29,22 @@ const workspace = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/settings/profile", label: "My profile", icon: UserRound },
 ];
 
 const adminNav = [
   { href: "/admin/users", label: "People & teams", icon: ShieldCheck },
+  { href: "/admin/teams", label: "Teams", icon: UsersRound },
 ];
 
 export function Sidebar({
   showAdmin = false,
+  unreadCount = 0,
   onNavigate,
   className,
 }: {
   showAdmin?: boolean;
+  unreadCount?: number;
   onNavigate?: () => void;
   className?: string;
 }) {
@@ -75,6 +83,7 @@ export function Sidebar({
                 const active =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
+                const showBadge = item.href === "/inbox" && unreadCount > 0;
                 return (
                   <Link
                     key={item.href}
@@ -88,7 +97,17 @@ export function Sidebar({
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
-                    {item.label}
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {showBadge ? (
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 text-[10px] font-semibold",
+                          active ? "bg-white/20 text-white" : "bg-emerald-600 text-white"
+                        )}
+                      >
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    ) : null}
                   </Link>
                 );
               })}

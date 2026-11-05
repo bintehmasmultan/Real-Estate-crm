@@ -3,6 +3,7 @@ import {
   deleteDoc,
   getDoc,
   listDocs,
+  newId,
   nowIso,
   updateDoc,
 } from "@/lib/db/firestore";
@@ -12,13 +13,22 @@ import type {
   Contact,
   ContactProperty,
   Deal,
+  InboxFolder,
   Lead,
   Note,
   PipelineStage,
   Property,
   Task,
   Team,
+  TeamInvite,
+  TeamMessage,
 } from "@/lib/types";
+import type { Role } from "@/lib/constants";
+import {
+  countUnread,
+  filterMailbox,
+  normalizeMessage,
+} from "@/lib/inbox";
 
 function scopeBy(
   agentIds: string[] | null,
@@ -42,23 +52,220 @@ export async function updateUser(id: string, data: Partial<AppUser>) {
   return updateDoc("users", id, data);
 }
 
-export async function listTeams(): Promise<Team[]> {
-  const teams = await listDocs<Team>("teams");
-  return teams.sort((a, b) => a.name.localeCompare(b.name));
+export async function removeUser(id: string) {
+  return deleteDoc("users", id);
 }
 
-export async function createTeam(data: {
-  name: string;
-  managerId?: string | null;
-}) {
-  return createDoc("teams", {
-    name: data.name,
-    managerId: data.managerId ?? null,
-  });
+export async function listTeams(): Promise<Team[]> {
+  const rows = await listDocs<Team>("teams");
+  return rows.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function getTeam(id: string) {
+  return getDoc<Team>("teams", id);
+}
+
+export async function createTeam(
+  data: Omit<Team, "id" | "createdAt" | "updatedAt">
+) {
+  return createDoc("teams", data);
 }
 
 export async function updateTeam(id: string, data: Partial<Team>) {
   return updateDoc("teams", id, data);
+}
+
+export async function removeTeam(id: string) {
+  return deleteDoc("teams", id);
+}
+
+export async function listInvites(): Promise<TeamInvite[]> {
+  const rows = await listDocs<TeamInvite>("invites");
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getInviteByToken(token: string) {
+  const rows = await listDocs<TeamInvite>("invites");
+  return rows.find((i) => i.token === token) || null;
+}
+
+export async function getPendingInviteByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const rows = await listDocs<TeamInvite>("invites");
+  return (
+    rows.find(
+      (i) => i.email === normalized && i.status === "PENDING"
+    ) || null
+  );
+}
+
+export async function createInvite(data: {
+  email: string;
+  teamId: string;
+  role: Role;
+  token: string;
+  invitedById: string;
+}) {
+  return createDoc("invites", {
+    ...data,
+    email: data.email.trim().toLowerCase(),
+    status: "PENDING" as const,
+    acceptedAt: null,
+  });
+}
+
+export async function updateInvite(
+  id: string,
+  data: Partial<TeamInvite>
+) {
+  return updateDoc("invites", id, data);
+}
+
+export async function removeInvite(id: string) {
+  return deleteDoc("invites", id);
+}
+
+export async function listMessages(): Promise<TeamMessage[]> {
+  const rows = await listDocs<TeamMessage>("messages");
+  return rows
+    .map(normalizeMessage)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function listMessagesForUser(
+  userId: string,
+  opts?: { folder?: InboxFolder; isAdmin?: boolean }
+): Promise<TeamMessage[]> {
+  const rows = await listMessages();
+  return filterMailbox(rows, userId, opts?.folder || "inbox", {
+    isAdmin: opts?.isAdmin,
+  });
+}
+
+export async function countUnreadMessages(userId: string) {
+  const rows = await listMessages();
+  return countUnread(rows, userId);
+}
+
+export async function getMessage(id: string) {
+  const row = await getDoc<TeamMessage>("messages", id);
+  return row ? normalizeMessage(row) : null;
+}
+
+export async function listThreadMessages(threadId: string) {
+  const rows = await listMessages();
+  return rows
+    .filter((m) => m.threadId === threadId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function createMessage(
+  data: Omit<TeamMessage, "id" | "createdAt" | "updatedAt" | "threadId"> & {
+    threadId?: string;
+    id?: string;
+  }
+) {
+  const id = data.id || newId();
+  const toUserIds = Array.from(
+    new Set((data.toUserIds?.length ? data.toUserIds : [data.toUserId]).filter(Boolean))
+  );
+  const payload: Omit<TeamMessage, "id" | "createdAt" | "updatedAt"> = {
+    fromUserId: data.fromUserId,
+    toUserId: data.toUserId || toUserIds[0] || "",
+    toUserIds,
+    subject: data.subject,
+    body: data.body,
+    threadId: data.threadId || id,
+    parentMessageId: data.parentMessageId ?? null,
+    readBy: data.readBy ?? [],
+    starredBy: data.starredBy ?? [],
+    archivedBy: data.archivedBy ?? [],
+    deletedBy: data.deletedBy ?? [],
+    readAt: data.readAt ?? null,
+    contactId: data.contactId ?? null,
+    propertyId: data.propertyId ?? null,
+    dealId: data.dealId ?? null,
+    leadId: data.leadId ?? null,
+  };
+  await createDoc("messages", payload, id);
+  return id;
+}
+
+export async function markMessageRead(id: string, userId: string) {
+  const message = await getMessage(id);
+  if (!message) return;
+  if (message.readBy.includes(userId)) return;
+  await updateDoc("messages", id, {
+    readBy: [...message.readBy, userId],
+    readAt: nowIso(),
+  });
+}
+
+export async function markMessageUnread(id: string, userId: string) {
+  const message = await getMessage(id);
+  if (!message) return;
+  await updateDoc("messages", id, {
+    readBy: message.readBy.filter((uid) => uid !== userId),
+    readAt: null,
+  });
+}
+
+export async function toggleMessageStar(id: string, userId: string) {
+  const message = await getMessage(id);
+  if (!message) return false;
+  const starred = message.starredBy.includes(userId);
+  await updateDoc("messages", id, {
+    starredBy: starred
+      ? message.starredBy.filter((uid) => uid !== userId)
+      : [...message.starredBy, userId],
+  });
+  return !starred;
+}
+
+export async function setMessageArchived(
+  id: string,
+  userId: string,
+  archived: boolean
+) {
+  const message = await getMessage(id);
+  if (!message) return;
+  const has = message.archivedBy.includes(userId);
+  if (archived && !has) {
+    await updateDoc("messages", id, {
+      archivedBy: [...message.archivedBy, userId],
+      deletedBy: message.deletedBy.filter((uid) => uid !== userId),
+    });
+  }
+  if (!archived && has) {
+    await updateDoc("messages", id, {
+      archivedBy: message.archivedBy.filter((uid) => uid !== userId),
+    });
+  }
+}
+
+export async function setMessageDeleted(
+  id: string,
+  userId: string,
+  deleted: boolean
+) {
+  const message = await getMessage(id);
+  if (!message) return;
+  const has = message.deletedBy.includes(userId);
+  if (deleted && !has) {
+    await updateDoc("messages", id, {
+      deletedBy: [...message.deletedBy, userId],
+      archivedBy: message.archivedBy.filter((uid) => uid !== userId),
+    });
+  }
+  if (!deleted && has) {
+    await updateDoc("messages", id, {
+      deletedBy: message.deletedBy.filter((uid) => uid !== userId),
+    });
+  }
+}
+
+export async function removeMessage(id: string) {
+  return deleteDoc("messages", id);
 }
 
 export async function listContacts(agentIds: string[] | null) {
@@ -132,6 +339,10 @@ export async function updateLead(id: string, data: Partial<Lead>) {
   return updateDoc("leads", id, data);
 }
 
+export async function removeLead(id: string) {
+  return deleteDoc("leads", id);
+}
+
 export async function listStages(pipeline: string) {
   const rows = await listDocs<PipelineStage>("pipelineStages");
   return rows
@@ -164,6 +375,10 @@ export async function updateDeal(id: string, data: Partial<Deal>) {
   return updateDoc("deals", id, data);
 }
 
+export async function removeDeal(id: string) {
+  return deleteDoc("deals", id);
+}
+
 export async function listTasks(agentIds: string[] | null) {
   const rows = await listDocs<Task>("tasks");
   return rows
@@ -183,6 +398,10 @@ export async function updateTask(id: string, data: Partial<Task>) {
 
 export async function getTask(id: string) {
   return getDoc<Task>("tasks", id);
+}
+
+export async function removeTask(id: string) {
+  return deleteDoc("tasks", id);
 }
 
 export async function listActivities(opts?: {

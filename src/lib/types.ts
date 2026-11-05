@@ -161,3 +161,53 @@ export type Team = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TeamInvite = {
+  id: string;
+  email: string;
+  teamId: string;
+  role: Role;
+  token: string;
+  status: "PENDING" | "ACCEPTED" | "REVOKED";
+  invitedById: string;
+  createdAt: string;
+  updatedAt: string;
+  acceptedAt?: string | null;
+};
+
+export type TeamMessage = {
+  id: string;
+  fromUserId: string;
+  /** Primary recipient (first of toUserIds) — kept for legacy queries/UI. */
+  toUserId: string;
+  /** All recipients for this message. */
+  toUserIds: string[];
+  subject: string;
+  body: string;
+  /** Root message id for the conversation (self for new threads). */
+  threadId: string;
+  parentMessageId?: string | null;
+  /** User ids who have read this message. */
+  readBy: string[];
+  starredBy: string[];
+  archivedBy: string[];
+  /** Soft-deleted for these users (hidden from normal folders). */
+  deletedBy: string[];
+  /** @deprecated Prefer readBy; kept for older documents. */
+  readAt?: string | null;
+  contactId?: string | null;
+  propertyId?: string | null;
+  dealId?: string | null;
+  leadId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InboxFolder =
+  | "inbox"
+  | "unread"
+  | "starred"
+  | "sent"
+  | "archive"
+  | "trash"
+  | "all";

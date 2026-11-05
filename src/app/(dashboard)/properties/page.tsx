@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/firebase/session";
 import { getUsers, listContacts, listProperties } from "@/lib/db/crm";
-import { getTeamAgentIds } from "@/lib/rbac";
+import {
+  canCreateProperty,
+  canDeleteRecords,
+  getTeamAgentIds,
+} from "@/lib/rbac";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PropertyFormModal } from "@/components/properties/property-form-modal";
+import { PropertyDeleteButton } from "@/components/properties/property-delete-button";
 
 function propertyMatches(
   p: {
@@ -59,7 +64,14 @@ export default async function PropertiesPage({
   );
 
   const userMap = new Map(users.map((u) => [u.id, u]));
-  const agents = users.map((u) => ({ id: u.id, name: u.name }));
+  const agents =
+    session.role === "ADMIN"
+      ? users.map((u) => ({ id: u.id, name: u.name }))
+      : users
+          .filter((u) => agentIds === null || agentIds.includes(u.id))
+          .map((u) => ({ id: u.id, name: u.name }));
+  const canAdd = canCreateProperty(session);
+  const canAssignAgent = session.role === "ADMIN";
 
   return (
     <div>
@@ -67,13 +79,17 @@ export default async function PropertiesPage({
         title="Properties"
         description="Listings across sales and rentals"
         actions={
-          <PropertyFormModal
-            agents={agents}
-            contacts={contacts.map((c) => ({
-              id: c.id,
-              name: fullName(c.firstName, c.lastName),
-            }))}
-          />
+          canAdd ? (
+            <PropertyFormModal
+              agents={agents}
+              contacts={contacts.map((c) => ({
+                id: c.id,
+                name: fullName(c.firstName, c.lastName),
+              }))}
+              canAssignAgent={canAssignAgent}
+              defaultAgentId={session.id}
+            />
+          ) : null
         }
       />
 
@@ -101,31 +117,40 @@ export default async function PropertiesPage({
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {properties.map((p) => (
-            <Link
-              key={p.id}
-              href={`/properties/${p.id}`}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-900"
-            >
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <h3 className="font-medium leading-snug">{p.title}</h3>
-                <Badge variant={p.status === "AVAILABLE" ? "default" : "secondary"}>
-                  {labelize(p.status)}
-                </Badge>
+              <div
+                key={p.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
+                <Link
+                  href={`/properties/${p.id}`}
+                  className="block transition hover:border-emerald-300"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <h3 className="font-medium leading-snug">{p.title}</h3>
+                    <Badge variant={p.status === "AVAILABLE" ? "default" : "secondary"}>
+                      {labelize(p.status)}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-500">{p.address}, {p.city}</p>
+                  <p className="mt-2 text-lg font-semibold text-emerald-700 dark:text-emerald-400">
+                    {formatCurrency(p.price)}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {labelize(p.type)}
+                    {p.area ? ` · ${p.area} ${p.areaUnit}` : ""}
+                    {p.beds ? ` · ${p.beds} beds` : ""}
+                    {" · "}
+                    {p.listingAgentId
+                      ? userMap.get(p.listingAgentId)?.name || "Unassigned"
+                      : "Unassigned"}
+                  </p>
+                </Link>
+                {canDeleteRecords(session) ? (
+                  <div className="mt-3 flex justify-end border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <PropertyDeleteButton propertyId={p.id} title={p.title} />
+                  </div>
+                ) : null}
               </div>
-              <p className="text-sm text-slate-500">{p.address}, {p.city}</p>
-              <p className="mt-2 text-lg font-semibold text-emerald-700 dark:text-emerald-400">
-                {formatCurrency(p.price)}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                {labelize(p.type)}
-                {p.area ? ` · ${p.area} ${p.areaUnit}` : ""}
-                {p.beds ? ` · ${p.beds} beds` : ""}
-                {" · "}
-                {p.listingAgentId
-                  ? userMap.get(p.listingAgentId)?.name || "Unassigned"
-                  : "Unassigned"}
-              </p>
-            </Link>
           ))}
         </div>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, Moon, Sun, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Inbox, Menu, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
@@ -21,11 +22,13 @@ function initials(name?: string | null) {
 export function Topbar({
   name,
   role,
+  unreadCount = 0,
   onMenu,
   menuOpen = false,
 }: {
   name?: string | null;
   role?: string;
+  unreadCount?: number;
   onMenu?: () => void;
   menuOpen?: boolean;
 }) {
@@ -65,6 +68,18 @@ export function Topbar({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <Link
+          href="/inbox"
+          aria-label={unreadCount > 0 ? `Inbox, ${unreadCount} unread` : "Inbox"}
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
+        >
+          <Inbox className="h-4 w-4" />
+          {unreadCount > 0 ? (
+            <span className="absolute -right-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-semibold text-white">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          ) : null}
+        </Link>
         <div className="hidden items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 dark:border-slate-800 sm:flex">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-semibold text-white">
             {initials(name)}

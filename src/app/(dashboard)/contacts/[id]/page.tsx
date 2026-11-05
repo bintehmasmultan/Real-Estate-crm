@@ -10,14 +10,16 @@ import {
   listContactProperties,
   listDeals,
 } from "@/lib/db/crm";
-import { getTeamAgentIds } from "@/lib/rbac";
+import { canDeleteRecords, canManageAssigned, getTeamAgentIds } from "@/lib/rbac";
 import { formatCurrency, formatDateTime, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContactFormModal } from "@/components/contacts/contact-form-modal";
+import { ContactDeleteButton } from "@/components/contacts/contact-delete-button";
 import { ActivityForm } from "@/components/shared/activity-form";
+import { AiAssistPanel } from "@/components/ai/ai-assist-panel";
 
 export default async function ContactDetailPage({
   params,
@@ -46,6 +48,12 @@ export default async function ContactDetailPage({
 
   const userMap = new Map(users.map((u) => [u.id, u]));
   const agents = users.map((u) => ({ id: u.id, name: u.name }));
+  const canManage = canManageAssigned(
+    session,
+    contact.assignedAgentId,
+    agentIds
+  );
+  const canDelete = canDeleteRecords(session);
   const assignedAgent = contact.assignedAgentId
     ? userMap.get(contact.assignedAgentId)
     : null;
@@ -81,7 +89,17 @@ export default async function ContactDetailPage({
             <Link href="/contacts" className="rounded-lg border px-3 py-2 text-sm">
               Back
             </Link>
-            <ContactFormModal agents={agents} contact={contact} triggerLabel="Edit" />
+            <AiAssistPanel contactId={contact.id} />
+            {canManage ? (
+              <ContactFormModal agents={agents} contact={contact} triggerLabel="Edit" />
+            ) : null}
+            {canDelete ? (
+              <ContactDeleteButton
+                id={contact.id}
+                name={fullName(contact.firstName, contact.lastName)}
+                redirectTo="/contacts"
+              />
+            ) : null}
           </>
         }
       />

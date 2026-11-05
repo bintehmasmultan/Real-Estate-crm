@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   createContact as createContactDoc,
+  getContact,
   removeContact,
   updateContact as updateContactDoc,
 } from "@/lib/db/crm";
 import { requireSessionUser } from "@/lib/firebase/session";
+import { canManageAssigned, getTeamAgentIds } from "@/lib/rbac";
 
 const contactSchema = z.object({
   firstName: z.string().min(1),
@@ -79,7 +81,15 @@ export async function createContact(formData: FormData) {
 }
 
 export async function updateContact(id: string, formData: FormData) {
-  await requireSessionUser();
+  const session = await requireSessionUser();
+  const existing = await getContact(id);
+  if (!existing) throw new Error("Contact not found");
+
+  const agentIds = await getTeamAgentIds(session);
+  if (!canManageAssigned(session, existing.assignedAgentId, agentIds)) {
+    throw new Error("Unauthorized");
+  }
+
   const data = formToContact(formData);
 
   await updateContactDoc(id, {
@@ -94,7 +104,12 @@ export async function updateContact(id: string, formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  await requireSessionUser();
+  const session = await requireSessionUser();
+  if (session.role !== "ADMIN") throw new Error("Unauthorized");
+  const existing = await getContact(id);
+  if (!existing) throw new Error("Contact not found");
+
   await removeContact(id);
   revalidatePath("/contacts");
+  revalidatePath("/dashboard");
 }

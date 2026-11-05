@@ -10,9 +10,11 @@ import {
   getLead,
   getUsers,
   listStages,
+  removeLead,
   updateLead as updateLeadDoc,
 } from "@/lib/db/crm";
 import { requireSessionUser } from "@/lib/firebase/session";
+import { canManageAssigned, getTeamAgentIds } from "@/lib/rbac";
 
 const leadSchema = z.object({
   firstName: z.string().min(1),
@@ -82,7 +84,14 @@ export async function createLead(formData: FormData) {
 }
 
 export async function updateLead(id: string, formData: FormData) {
-  await requireSessionUser();
+  const session = await requireSessionUser();
+  const existing = await getLead(id);
+  if (!existing) throw new Error("Lead not found");
+  const agentIds = await getTeamAgentIds(session);
+  if (!canManageAssigned(session, existing.assignedAgentId, agentIds)) {
+    throw new Error("Unauthorized");
+  }
+
   const data = parseLead(formData);
 
   await updateLeadDoc(id, {
@@ -92,6 +101,17 @@ export async function updateLead(id: string, formData: FormData) {
   });
 
   revalidatePath("/leads");
+}
+
+export async function deleteLead(id: string) {
+  const session = await requireSessionUser();
+  if (session.role !== "ADMIN") throw new Error("Unauthorized");
+  const existing = await getLead(id);
+  if (!existing) throw new Error("Lead not found");
+
+  await removeLead(id);
+  revalidatePath("/leads");
+  revalidatePath("/dashboard");
 }
 
 export async function convertLead(leadId: string) {

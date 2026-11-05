@@ -1,5 +1,6 @@
 import { assignUserTeam, createTeamAction, updateTeamAction } from "@/app/actions/teams";
 import { updateOwnProfile, updateUserRole } from "@/app/actions/users";
+import { UserDeleteButton } from "@/components/admin/user-delete-button";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -284,25 +285,28 @@ export function WorkspacePanel({
                       {isSelf ? "Locked" : "Save role"}
                     </Button>
                   </form>
-                  <form action={assignUserTeam} className="flex flex-col gap-2 sm:flex-row">
-                    <input type="hidden" name="userId" value={user.id} />
-                    <Select
-                      name="teamId"
-                      defaultValue={user.teamId ?? ""}
-                      aria-label={`Team for ${user.name}`}
-                      className="sm:min-w-0 sm:flex-1"
-                    >
-                      <option value="">No team</option>
-                      {teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Button type="submit" size="sm" variant="secondary" className="sm:shrink-0">
-                      Save team
-                    </Button>
-                  </form>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <form action={assignUserTeam} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+                      <input type="hidden" name="userId" value={user.id} />
+                      <Select
+                        name="teamId"
+                        defaultValue={user.teamId ?? ""}
+                        aria-label={`Team for ${user.name}`}
+                        className="sm:min-w-0 sm:flex-1"
+                      >
+                        <option value="">No team</option>
+                        {teams.map((team) => (
+                          <option key={team.id} value={team.id}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </Select>
+                      <Button type="submit" size="sm" variant="secondary" className="sm:shrink-0">
+                        Save team
+                      </Button>
+                    </form>
+                    {!isSelf ? <UserDeleteButton id={user.id} name={user.name} /> : null}
+                  </div>
                 </div>
               );
             })

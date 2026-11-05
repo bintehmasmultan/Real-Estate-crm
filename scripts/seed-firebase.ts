@@ -76,6 +76,8 @@ const COLLECTIONS = [
   "leads",
   "properties",
   "contacts",
+  "invites",
+  "messages",
   "users",
   "teams",
 ];

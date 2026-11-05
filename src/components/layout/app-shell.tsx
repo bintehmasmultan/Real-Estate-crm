@@ -5,17 +5,22 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { InboxPopup, type InboxPopupItem } from "@/components/inbox/inbox-popup";
 
 export function AppShell({
   children,
   name,
   role,
   showAdmin = false,
+  unreadCount = 0,
+  inboxItems = [],
 }: {
   children: React.ReactNode;
   name?: string | null;
   role?: string;
   showAdmin?: boolean;
+  unreadCount?: number;
+  inboxItems?: InboxPopupItem[];
 }) {
   const pathname = usePathname();
   const [openPath, setOpenPath] = useState<string | null>(null);
@@ -42,6 +47,7 @@ export function AppShell({
       ) : null}
       <Sidebar
         showAdmin={showAdmin}
+        unreadCount={unreadCount}
         onNavigate={() => setOpenPath(null)}
         className={
           open
@@ -50,11 +56,18 @@ export function AppShell({
         }
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar name={name} role={role} onMenu={() => setOpenPath(pathname)} menuOpen={open} />
+        <Topbar
+          name={name}
+          role={role}
+          unreadCount={unreadCount}
+          onMenu={() => setOpenPath(pathname)}
+          menuOpen={open}
+        />
         <main className="flex-1 px-4 py-4 pb-24 sm:px-6 sm:py-6 lg:px-8 lg:pb-8">
           {children}
         </main>
-        <MobileNav />
+        <MobileNav unreadCount={unreadCount} />
+        <InboxPopup unreadCount={unreadCount} items={inboxItems} />
       </div>
     </div>
   );

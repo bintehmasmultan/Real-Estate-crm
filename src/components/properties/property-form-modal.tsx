@@ -21,11 +21,16 @@ export function PropertyFormModal({
   contacts,
   property,
   triggerLabel = "Add property",
+  canAssignAgent = true,
+  defaultAgentId,
 }: {
   agents: Option[];
   contacts: Option[];
   property?: Property;
   triggerLabel?: string;
+  /** Admins can pick any agent; others are locked to themselves. */
+  canAssignAgent?: boolean;
+  defaultAgentId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -107,12 +112,39 @@ export function PropertyFormModal({
           </div>
           <div className="space-y-1">
             <Label>Listing agent</Label>
-            <Select name="listingAgentId" defaultValue={property?.listingAgentId ?? ""}>
-              <option value="">Unassigned</option>
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </Select>
+            {canAssignAgent ? (
+              <Select
+                name="listingAgentId"
+                defaultValue={
+                  property?.listingAgentId ?? defaultAgentId ?? ""
+                }
+              >
+                <option value="">Unassigned</option>
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <>
+                <input
+                  type="hidden"
+                  name="listingAgentId"
+                  value={property?.listingAgentId ?? defaultAgentId ?? ""}
+                />
+                <Input
+                  readOnly
+                  value={
+                    agents.find(
+                      (a) =>
+                        a.id ===
+                        (property?.listingAgentId ?? defaultAgentId)
+                    )?.name || "You"
+                  }
+                />
+              </>
+            )}
           </div>
           <div className="space-y-1">
             <Label>Owner contact</Label>

@@ -1,6 +1,6 @@
 import { getSessionUser } from "@/lib/firebase/session";
 import { getUsers, listLeads } from "@/lib/db/crm";
-import { getTeamAgentIds } from "@/lib/rbac";
+import { canDeleteRecords, getTeamAgentIds } from "@/lib/rbac";
 import { formatCurrency, fullName } from "@/lib/utils";
 import { labelize } from "@/lib/constants";
 import { PageHeader } from "@/components/shared/page-header";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { LeadActions } from "@/components/leads/lead-actions";
+import { LeadDeleteButton } from "@/components/leads/lead-delete-button";
 import { LeadFormModal } from "@/components/leads/lead-form-modal";
 
 function leadMatches(
@@ -152,7 +153,15 @@ export default async function LeadsPage({
                       : "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <LeadActions leadId={lead.id} converted={lead.status === "CONVERTED"} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <LeadActions leadId={lead.id} converted={lead.status === "CONVERTED"} />
+                      {canDeleteRecords(session) ? (
+                        <LeadDeleteButton
+                          id={lead.id}
+                          name={fullName(lead.firstName, lead.lastName)}
+                        />
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

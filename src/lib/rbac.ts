@@ -31,3 +31,36 @@ export function inAgentScope(
   if (!fieldValue) return false;
   return agentIds.includes(fieldValue);
 }
+
+/**
+ * Admin can manage any record. Others can manage records they own
+ * or that fall in their team agent scope.
+ */
+export function canManageAssigned(
+  user: SessionUser,
+  ownerId?: string | null,
+  agentIds?: string[] | null
+) {
+  if (user.role === "ADMIN") return true;
+  if (ownerId && ownerId === user.id) return true;
+  if (agentIds === undefined) return false;
+  return inAgentScope(agentIds, ownerId);
+}
+
+/** Hard delete is admin-only across CRM features. */
+export function canDeleteRecords(user: SessionUser) {
+  return user.role === "ADMIN";
+}
+
+/** @deprecated use canManageAssigned */
+export function canManageProperty(
+  user: SessionUser,
+  listingAgentId?: string | null,
+  agentIds?: string[] | null
+) {
+  return canManageAssigned(user, listingAgentId, agentIds);
+}
+
+export function canCreateProperty(user: SessionUser) {
+  return isCrmRole(user.role);
+}

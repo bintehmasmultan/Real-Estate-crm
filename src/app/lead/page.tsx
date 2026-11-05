@@ -18,7 +18,7 @@ export default function PublicLeadPage() {
 
   if (done) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-8 dark:bg-slate-950">
         <Card className="w-full max-w-lg text-center">
           <CardHeader>
             <CardTitle>Thanks — we got your inquiry</CardTitle>
@@ -32,7 +32,7 @@ export default function PublicLeadPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-950 px-4 py-8 sm:py-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_45%)]" />
       <Card className="relative z-10 w-full max-w-xl border-slate-800 bg-slate-900/90 text-slate-50">
         <CardHeader>

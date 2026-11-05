@@ -64,14 +64,14 @@ export function KanbanBoard({ stages }: { stages: Stage[] }) {
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:gap-4 sm:px-0">
         {optimistic.map((stage) => (
           <Droppable droppableId={stage.id} key={stage.id}>
             {(provided) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="w-72 shrink-0 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60"
+                className="w-[82vw] max-w-72 shrink-0 snap-start rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60 sm:w-72"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">

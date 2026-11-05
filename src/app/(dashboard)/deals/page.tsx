@@ -81,7 +81,7 @@ export default async function DealsPage({
       <div className="mb-4 flex gap-2">
         <Link
           href="/deals?pipeline=SALES"
-          className={`rounded-lg px-3 py-1.5 text-sm ${
+          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm font-medium sm:flex-none ${
             pipeline === "SALES"
               ? "bg-emerald-600 text-white"
               : "border border-slate-200 dark:border-slate-800"
@@ -91,7 +91,7 @@ export default async function DealsPage({
         </Link>
         <Link
           href="/deals?pipeline=RENTALS"
-          className={`rounded-lg px-3 py-1.5 text-sm ${
+          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm font-medium sm:flex-none ${
             pipeline === "RENTALS"
               ? "bg-emerald-600 text-white"
               : "border border-slate-200 dark:border-slate-800"

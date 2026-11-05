@@ -34,9 +34,17 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(900px 420px at 100% -10%, rgba(16, 185, 129, 0.08), transparent 55%),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark body {
+  background:
+    radial-gradient(900px 420px at 100% -10%, rgba(16, 185, 129, 0.12), transparent 50%),
+    var(--background);
 }
 
 ::-webkit-scrollbar {

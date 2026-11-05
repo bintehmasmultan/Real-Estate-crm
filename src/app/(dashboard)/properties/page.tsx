@@ -77,7 +77,7 @@ export default async function PropertiesPage({
         }
       />
 
-      <form className="mb-4 grid gap-2 md:grid-cols-4">
+      <form className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Input name="q" placeholder="Search listings..." defaultValue={q} />
         <Select name="type" defaultValue={type}>
           <option value="">All types</option>
@@ -104,7 +104,7 @@ export default async function PropertiesPage({
             <Link
               key={p.id}
               href={`/properties/${p.id}`}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-900"
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-900"
             >
               <div className="mb-3 flex items-start justify-between gap-2">
                 <h3 className="font-medium leading-snug">{p.title}</h3>

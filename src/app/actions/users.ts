@@ -29,5 +29,23 @@ export async function updateUserRole(formData: FormData) {
   }
 
   await updateUser(userId, { role: role satisfies Role });
-  revalidatePath("/admin/users");
+  revalidatePath("/", "layout");
+}
+
+export async function updateOwnProfile(formData: FormData) {
+  const session = await requireSessionUser();
+  if (session.role !== "ADMIN") throw new Error("Unauthorized");
+
+  const name = String(formData.get("name") || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  const phone = String(formData.get("phone") || "").trim();
+
+  if (name.length < 2 || name.length > 80) {
+    throw new Error("Name must be 2–80 characters");
+  }
+  if (phone.length > 40) throw new Error("Phone is too long");
+
+  await updateUser(session.id, { name, phone: phone || null });
+  revalidatePath("/", "layout");
 }

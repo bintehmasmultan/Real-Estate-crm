@@ -56,7 +56,7 @@ export default async function TasksPage() {
           {sorted.map((task) => (
             <div
               key={task.id}
-              className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-start gap-3">
                 <TaskToggle id={task.id} done={task.status === "DONE"} />

@@ -140,7 +140,7 @@ export default async function ReportsPage() {
           {agentPerf.length === 0 ? (
             <p className="text-sm text-slate-500">No agents in scope</p>
           ) : (
-            <table className="w-full text-left text-sm">
+            <table className="min-w-[32rem] w-full text-left text-sm">
               <thead className="text-xs uppercase text-slate-500">
                 <tr>
                   <th className="py-2 pr-3 font-medium">Agent</th>

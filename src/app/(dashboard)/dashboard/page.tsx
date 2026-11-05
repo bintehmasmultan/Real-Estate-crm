@@ -119,7 +119,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard</h1>
         <p className="text-sm text-slate-500">
           Snapshot of your pipeline, activity, and upcoming work
         </p>
@@ -134,7 +134,7 @@ export default async function DashboardPage() {
                 <CardContent className="flex items-center justify-between p-5">
                   <div>
                     <p className="text-sm text-slate-500">{m.label}</p>
-                    <p className="mt-1 text-2xl font-semibold">{m.value}</p>
+                    <p className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{m.value}</p>
                   </div>
                   <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                     <Icon className="h-5 w-5" />

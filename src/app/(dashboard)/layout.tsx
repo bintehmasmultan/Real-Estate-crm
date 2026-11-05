@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/firebase/session";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
-import { MobileNav } from "@/components/layout/mobile-nav";
+import { AppShell } from "@/components/layout/app-shell";
 
 export default async function DashboardLayout({
   children,
@@ -14,13 +12,12 @@ export default async function DashboardLayout({
   if (session.role === "PENDING") redirect("/pending-approval");
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-        <Sidebar showAdmin={session.role === "ADMIN"} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar name={session.name} role={session.role} />
-        <main className="flex-1 p-4 pb-24 md:p-6 lg:pb-6">{children}</main>
-        <MobileNav />
-      </div>
-    </div>
+    <AppShell
+      name={session.name}
+      role={session.role}
+      showAdmin={session.role === "ADMIN"}
+    >
+      {children}
+    </AppShell>
   );
 }

@@ -17,6 +17,7 @@ import type {
   PipelineStage,
   Property,
   Task,
+  Team,
 } from "@/lib/types";
 
 function scopeBy(
@@ -39,6 +40,25 @@ export async function getUser(id: string) {
 
 export async function updateUser(id: string, data: Partial<AppUser>) {
   return updateDoc("users", id, data);
+}
+
+export async function listTeams(): Promise<Team[]> {
+  const teams = await listDocs<Team>("teams");
+  return teams.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function createTeam(data: {
+  name: string;
+  managerId?: string | null;
+}) {
+  return createDoc("teams", {
+    name: data.name,
+    managerId: data.managerId ?? null,
+  });
+}
+
+export async function updateTeam(id: string, data: Partial<Team>) {
+  return updateDoc("teams", id, data);
 }
 
 export async function listContacts(agentIds: string[] | null) {

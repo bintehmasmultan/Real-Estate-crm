@@ -1,7 +1,7 @@
 {
-  "name": "EstateCRM",
-  "short_name": "EstateCRM",
-  "description": "Real estate CRM for leads, listings, and deals",
+  "name": "BINTEHMAS Real Estate CRM",
+  "short_name": "BINTEHMAS",
+  "description": "BINTEHMAS Real Estate CRM for leads, listings, and deals",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",

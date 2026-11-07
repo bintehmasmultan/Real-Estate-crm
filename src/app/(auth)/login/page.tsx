@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building } from "lucide-react";
 import { getSessionUser } from "@/lib/firebase/session";
 import { hasFirebaseAdminCredentials } from "@/lib/firebase/admin";
+import { BrandMark } from "@/components/brand-mark";
 import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,7 +16,7 @@ export default async function LoginPage() {
 
   return (
     <div className="grid min-h-dvh bg-slate-950 lg:grid-cols-2">
-      <aside className="relative min-h-48 overflow-hidden sm:min-h-64 lg:min-h-dvh">
+      <aside className="relative min-h-72 overflow-hidden sm:min-h-80 lg:min-h-dvh">
         <img
           src="/brand/bintehmas-tower.png"
           alt="BINTEHMAS tower at sunset"
@@ -24,6 +24,7 @@ export default async function LoginPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-slate-950/10" />
         <div className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8 lg:p-12">
+          <BrandMark alt="" className="mb-4 h-16 w-16 rounded-2xl border border-white/15 shadow-lg sm:h-20 sm:w-20" />
           <p className="text-xs font-semibold tracking-[0.28em] text-amber-200">BINTEHMAS</p>
           <h1 className="mt-2 max-w-sm text-3xl font-semibold tracking-tight sm:text-4xl">
             Real Estate CRM
@@ -39,9 +40,7 @@ export default async function LoginPage() {
         <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-8 sm:px-8">
           <Card className="w-full max-w-md border-slate-800 bg-slate-900/90 text-slate-50 shadow-2xl">
             <CardHeader>
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600">
-                <Building className="h-5 w-5 text-white" />
-              </div>
+              <BrandMark className="mb-3" />
               <CardTitle className="text-2xl text-white">Sign in to BINTEHMAS</CardTitle>
               <CardDescription className="text-slate-400">
                 BINTEHMAS Real Estate CRM. Team accounts require email verification or Google sign-in.
@@ -78,8 +77,16 @@ export default async function LoginPage() {
             </CardContent>
           </Card>
         </div>
-        <p className="relative z-10 px-4 pb-4 text-right text-[11px] leading-snug text-slate-400 sm:px-8 sm:pb-6 sm:text-xs">
-          powered by: <span className="font-medium text-slate-200">Axe&apos;s Era Enterprises</span>
+        <p className="relative z-10 flex flex-wrap items-center justify-end gap-2 px-4 pb-4 text-[11px] leading-snug text-slate-400 sm:px-8 sm:pb-6 sm:text-xs">
+          <span>powered by:</span>
+          <a
+            href="https://gauharaxe.org"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex max-w-full items-center rounded-md border border-slate-600 bg-slate-900 px-2.5 py-1 text-right font-medium text-slate-100 transition hover:border-emerald-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+          >
+            Axe&apos;s Era Enterprises
+          </a>
         </p>
       </div>
     </div>

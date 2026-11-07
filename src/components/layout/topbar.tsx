@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -60,6 +61,7 @@ export function Topbar({
         >
           <Menu className="h-5 w-5" />
         </Button>
+        <BrandMark alt="" className="h-9 w-9 rounded-lg lg:hidden" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             Welcome back{name ? `, ${name.split(" ")[0]}` : ""}

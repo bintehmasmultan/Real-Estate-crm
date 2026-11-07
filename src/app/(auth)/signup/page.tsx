@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building } from "lucide-react";
 import { getSessionUser } from "@/lib/firebase/session";
 import { getInviteByToken } from "@/lib/db/crm";
+import { BrandMark } from "@/components/brand-mark";
 import { SignupForm } from "@/components/auth/signup-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -28,9 +28,7 @@ export default async function SignupPage({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_45%)]" />
       <Card className="relative z-10 w-full max-w-md border-slate-800 bg-slate-900/90 text-slate-50">
         <CardHeader>
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600">
-            <Building className="h-5 w-5 text-white" />
-          </div>
+          <BrandMark className="mb-3" />
           <CardTitle className="text-2xl text-white">
             {validInvite ? "Join your team" : "Request an account"}
           </CardTitle>

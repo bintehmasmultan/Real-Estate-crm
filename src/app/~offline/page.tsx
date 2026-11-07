@@ -1,6 +1,9 @@
+import { BrandMark } from "@/components/brand-mark";
+
 export default function OfflinePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-emerald-50 px-6 text-center dark:bg-slate-950">
+      <BrandMark className="h-16 w-16 rounded-2xl" />
       <h1 className="text-2xl font-semibold text-emerald-800 dark:text-emerald-300">
         You&apos;re offline
       </h1>

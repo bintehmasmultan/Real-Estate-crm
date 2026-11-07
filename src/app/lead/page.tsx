@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Building } from "lucide-react";
 import { toast } from "sonner";
 import { createPublicLead } from "@/app/actions/leads";
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,9 +36,7 @@ export default function PublicLeadPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_45%)]" />
       <Card className="relative z-10 w-full max-w-xl border-slate-800 bg-slate-900/90 text-slate-50">
         <CardHeader>
-          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600">
-            <Building className="h-5 w-5" />
-          </div>
+          <BrandMark className="mb-2 h-10 w-10" />
           <CardTitle className="text-white">Tell us what you&apos;re looking for</CardTitle>
           <CardDescription className="text-slate-400">
             Public lead capture for BINTEHMAS Real Estate CRM

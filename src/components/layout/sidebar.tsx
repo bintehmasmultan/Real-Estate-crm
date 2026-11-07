@@ -14,9 +14,9 @@ import {
   ShieldCheck,
   UsersRound,
   UserRound,
-  Building,
   Inbox,
 } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/utils";
 
 const workspace = [
@@ -64,9 +64,7 @@ export function Sidebar({
       )}
     >
       <div className="flex h-16 items-center gap-3 border-b border-slate-200/80 px-5 dark:border-slate-800">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm shadow-emerald-600/30">
-          <Building className="h-5 w-5" />
-        </div>
+        <BrandMark alt="" className="h-10 w-10 rounded-2xl" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold tracking-tight">BINTEHMAS</p>
           <p className="truncate text-xs text-slate-500">Real Estate CRM</p>

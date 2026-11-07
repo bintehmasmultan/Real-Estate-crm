@@ -89,7 +89,7 @@ export function InstallPrompt() {
           {deferred ? <Download className="h-4 w-4" /> : <Share className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">Install EstateCRM</p>
+          <p className="text-sm font-medium">Install BINTEHMAS</p>
           <p className="mt-0.5 text-xs text-slate-500">
             {deferred
               ? "Add the app to your home screen for faster access."

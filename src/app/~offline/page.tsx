@@ -5,7 +5,7 @@ export default function OfflinePage() {
         You&apos;re offline
       </h1>
       <p className="max-w-sm text-sm text-slate-600 dark:text-slate-400">
-        EstateCRM needs a connection for live CRM data. Reconnect and refresh to
+        BINTEHMAS Real Estate CRM needs a connection for live CRM data. Reconnect and refresh to
         continue.
       </p>
     </main>

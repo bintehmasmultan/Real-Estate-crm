@@ -24,7 +24,7 @@ export async function sendGmailInvite(opts: {
   });
 
   await transporter.sendMail({
-    from: `Estate CRM <${user}>`,
+    from: `BINTEHMAS Real Estate CRM <${user}>`,
     to: opts.to,
     subject: opts.subject,
     text: opts.text,

@@ -41,7 +41,7 @@ export default function PublicLeadPage() {
           </div>
           <CardTitle className="text-white">Tell us what you&apos;re looking for</CardTitle>
           <CardDescription className="text-slate-400">
-            Public lead capture for EstateCRM
+            Public lead capture for BINTEHMAS Real Estate CRM
           </CardDescription>
         </CardHeader>
         <CardContent>

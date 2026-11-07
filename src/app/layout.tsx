@@ -18,14 +18,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EstateCRM — Real Estate CRM",
-  description: "Production-ready real estate CRM for leads, listings, and deals",
-  applicationName: "EstateCRM",
+  title: "BINTEHMAS Real Estate CRM",
+  description: "BINTEHMAS Real Estate CRM for leads, listings, and deals",
+  applicationName: "BINTEHMAS Real Estate CRM",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "EstateCRM",
+    title: "BINTEHMAS",
   },
   icons: {
     icon: [

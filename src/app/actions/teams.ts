@@ -216,7 +216,7 @@ export async function inviteToTeamAction(input: {
   });
 
   const inviteUrl = `${appBaseUrl()}/signup?invite=${token}`;
-  const subject = `You're invited to join ${team.name} on Estate CRM`;
+  const subject = `You're invited to join ${team.name} on BINTEHMAS Real Estate CRM`;
   const text = [
     `You've been invited to join ${team.name} as ${role}.`,
     "",

@@ -68,8 +68,8 @@ export function Sidebar({
           <Building className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold tracking-tight">EstateCRM</p>
-          <p className="truncate text-xs text-slate-500">Real estate workspace</p>
+          <p className="truncate text-sm font-semibold tracking-tight">BINTEHMAS</p>
+          <p className="truncate text-xs text-slate-500">Real Estate CRM</p>
         </div>
       </div>
       <nav className="flex-1 space-y-4 overflow-y-auto p-3">

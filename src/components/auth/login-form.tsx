@@ -48,7 +48,9 @@ export function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken, inviteToken }),
       });
-      if (!res.ok) throw new Error("Session failed");
+      if (!res.ok) {
+        throw new Error("session");
+      }
       const body = (await res.json()) as {
         role?: string;
         emailVerified?: boolean;
@@ -66,8 +68,13 @@ export function LoginForm() {
         router.push("/dashboard");
       }
       router.refresh();
-    } catch {
-      setError("Invalid email or password");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(
+        message === "session"
+          ? "Signed in, but the server could not start your session."
+          : "Invalid email or password"
+      );
     } finally {
       setPending(false);
     }
@@ -82,7 +89,7 @@ export function LoginForm() {
             name="email"
             type="email"
             required
-            defaultValue="admin@crm.local"
+            autoComplete="email"
             className="border-slate-700 bg-slate-950 text-white"
           />
         </div>
@@ -92,7 +99,7 @@ export function LoginForm() {
             name="password"
             type="password"
             required
-            defaultValue="password123"
+            autoComplete="current-password"
             className="border-slate-700 bg-slate-950 text-white"
           />
         </div>

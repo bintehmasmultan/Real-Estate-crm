@@ -40,16 +40,7 @@ In Firebase Console → **Project settings** → **Service accounts** → **Gene
 - Set `FIREBASE_CLIENT_EMAIL` to the service account email
 - Set `FIREBASE_PRIVATE_KEY` to the private key (keep `\n` escapes in `.env.local`)
 
-The seed script uses `firebase-admin` with these variables to create demo users and sample CRM data.
-
-### Demo logins
-
-| Role    | Email               | Password    |
-|---------|---------------------|-------------|
-| Admin   | `admin@crm.local`   | `password123` |
-| Manager | `manager@crm.local` | `password123` |
-| Agent   | `agent@crm.local`   | `password123` |
-| Agent   | `agent2@crm.local`  | `password123` |
+The seed script uses `firebase-admin` with these variables to create sample CRM data.
 
 Public lead form: [http://localhost:3000/lead](http://localhost:3000/lead)
 

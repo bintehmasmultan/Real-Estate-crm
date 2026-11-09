@@ -71,10 +71,7 @@ export default async function LoginPage() {
                   Create one
                 </Link>
               </p>
-              <div className="mt-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-400">
-                Bootstrap admin: admin@crm.local / password123
-              </div>
-            </CardContent>
+          </CardContent>
           </Card>
         </div>
         <p className="relative z-10 flex flex-wrap items-center justify-end gap-2 px-4 pb-4 text-[11px] leading-snug text-slate-400 sm:px-8 sm:pb-6 sm:text-xs">

@@ -53,7 +53,7 @@ export default async function LoginPage() {
                   <code>.env.local</code> from the{" "}
                   <a
                     className="underline"
-                    href="https://console.firebase.google.com/project/estate-crm-web/settings/serviceaccounts/adminsdk"
+                    href="https://console.firebase.google.com/project/bintehmasmultan-crm/settings/serviceaccounts/adminsdk"
                     target="_blank"
                     rel="noreferrer"
                   >

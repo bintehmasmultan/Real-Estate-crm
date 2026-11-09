@@ -14,14 +14,14 @@ Production-ready real estate CRM built with Next.js (App Router), TypeScript, **
 
 ## Firebase project
 
-This repo targets Firebase project **`estate-crm-web`** with:
+This repo targets Firebase project **`bintehmasmultan-crm`** with:
 
 - **Authentication** — Email/password sign-in
 - **Firestore** — CRM data (`users`, `contacts`, `properties`, `leads`, `deals`, etc.)
 
 ## Quick start
 
-1. Create or open project [estate-crm-web](https://console.firebase.google.com/) and enable **Email/Password** auth and **Firestore**.
+1. Open project [bintehmasmultan-crm](https://console.firebase.google.com/project/bintehmasmultan-crm) and enable **Email/Password** auth. Firestore is already in `asia-south1`.
 2. Copy `.env.example` to `.env.local` and fill in web + admin credentials.
 3. Install and seed:
 

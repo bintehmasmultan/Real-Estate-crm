@@ -1,5 +1,5 @@
 /**
- * Seeds Firestore + Firebase Auth demo data for estate-crm-web.
+ * Seeds Firestore + Firebase Auth demo data for bintehmasmultan-crm.
  * Requires FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID
  * (load from .env.local when running locally).
  * Refuses to run when NODE_ENV, VERCEL_ENV, or FIREBASE_ENV is production

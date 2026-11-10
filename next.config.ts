@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { withSerwist } from "@serwist/turbopack";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   // The dev server binds 0.0.0.0, so browsers that open it as 127.0.0.1
   // are treated as cross-origin. Without this, the HMR socket is rejected
   // and the dev client never hydrates.

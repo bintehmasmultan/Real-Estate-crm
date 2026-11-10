@@ -1,12 +1,13 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import defaultConfig from "./firebase-config.json";
 
 let app: App | null = null;
 
 export function hasFirebaseAdminCredentials() {
   return Boolean(
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
+    (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || defaultConfig.projectId) &&
       process.env.FIREBASE_CLIENT_EMAIL &&
       process.env.FIREBASE_PRIVATE_KEY
   );
@@ -19,7 +20,8 @@ function initAdmin(): App {
     return app;
   }
 
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const projectId =
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || defaultConfig.projectId;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
